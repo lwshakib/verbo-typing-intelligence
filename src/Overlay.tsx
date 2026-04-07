@@ -3,17 +3,14 @@ import './Overlay.css';
 
 export default function Overlay() {
   const [suggestion, setSuggestion] = useState<string | null>(null);
-  const [contextText, setContextText] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleShowSuggestion = (_event: any, newSuggestion: string, context: string) => {
+    const handleShowSuggestion = (_event: any, newSuggestion: string) => {
       setSuggestion(newSuggestion);
-      setContextText(context);
     };
 
     const handleHideSuggestion = () => {
       setSuggestion(null);
-      setContextText(null);
     };
 
     if (window.ipcRenderer) {
@@ -33,12 +30,7 @@ export default function Overlay() {
 
   return (
     <div className="overlay-container">
-      <div className="suggestion-box">
-        <span className="context">{contextText?.slice(-15)}</span>
-        <div className="separator" />
-        <span className="suggestion">{suggestion}</span>
-        <div className="hint">Tab</div>
-      </div>
+      <span className="suggestion">{suggestion}</span>
     </div>
   );
 }

@@ -118,15 +118,15 @@ app.whenReady().then(() => {
 
     if (overlayWin) {
       if (context.caretRect) {
-        console.log('[Main] Positioning overlay at:', context.caretRect);
+        console.log('[Main] Positioning ghost text at:', context.caretRect);
         overlayWin.setBounds({
-          x: Math.round(context.caretRect.x + 20),
-          y: Math.round(context.caretRect.y + context.caretRect.height + 5),
+          x: Math.round(context.caretRect.x + 2),
+          y: Math.round(context.caretRect.y),
           width: 800,
-          height: 120
+          height: 100
         })
       }
-      overlayWin.webContents.send('show-suggestion', suggestion, context.fullText)
+      overlayWin.webContents.send('show-suggestion', suggestion)
     }
   })
 

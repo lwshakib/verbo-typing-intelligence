@@ -9,60 +9,23 @@ body {
   width: 100vw;
   height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* Align to top instead of center */
+  padding-top: 2px;
   pointer-events: none;
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.suggestion-box {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 20px;
-  background: rgba(15, 15, 15, 0.7);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.125);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  color: #f3f4f6;
-  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
-  font-size: 14px;
-}
-
-.context {
-  color: rgba(255, 255, 255, 0.5);
-  font-weight: 300;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.separator {
-  width: 1px;
-  height: 16px;
-  background: rgba(255, 255, 255, 0.2);
 }
 
 .suggestion {
-  color: #10b981; /* Emerald green */
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.45); /* Ghostly gray */
+  font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 14.5px; /* Slightly adjusted for common input sizes */
+  font-weight: 400;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.15s ease-out;
 }
 
-.hint {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.08);
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-left: 4px;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-
