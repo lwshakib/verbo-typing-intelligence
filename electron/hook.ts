@@ -25,6 +25,9 @@ export class KeyHook extends EventEmitter {
 
 
   private handleKeyDown(e: any) {
+    // Emit event immediately for auto-hiding
+    this.emit('keypress', e);
+
     // Clear existing timer
     if (this.debouncedTimer) {
       clearTimeout(this.debouncedTimer);

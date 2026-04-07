@@ -3,20 +3,21 @@ export interface AISuggestionResponse {
   reasoning?: string;
 }
 
-const WORKER_URL = 'https://cloudflare-ai-gateway.sk00990099009916.workers.dev/';
+const WORKER_URL = 'https://cloudflare-ai-gateway.sk00990099009911.workers.dev/';
 const API_KEY = 'Jl515OpIfKjIYJHTXFfCo0ufoTHNCzQWAL5DMPIS0HEHDrjw4MncZxIjkRcitUuqKVBvmDaVNWp4iSBGjz3w4EgUwGA3biGmeUsaGbsTuqnyhAsuhAF99tc7OerLtCphoFZJnXlFUEk7cBcyLmOwcVCDfMGcKCPCPIsT01b9bJCZbc0t5iZN3m3DcVHf37X2i2lVLZiypcC1ctNnwAbCq0oVrMELG3lEiq7OHC7HzVQ2cGS7oXyCBelICMrTNWpx';
 
-export async function getAISuggestions(text: string, context: string = ''): Promise<AISuggestionResponse> {
+export async function getAISuggestions(text: string, signal?: AbortSignal, context: string = ''): Promise<AISuggestionResponse> {
   if (!text && !context) return { suggestion: '' };
 
   try {
     console.log('[AI] Sending request to worker...', { textLen: text.length });
     const response = await fetch(WORKER_URL, {
       method: 'POST',
+      signal, // Attach the cancellation signal
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
-        'x-session-affinity': 'verbo-typing-session-1' // Optional: unique per session
+        'x-session-affinity': 'verbo-typing-session-1'
       },
       body: JSON.stringify({
         model: 'glm-4.7-flash',
@@ -30,7 +31,7 @@ export async function getAISuggestions(text: string, context: string = ''): Prom
             content: `Complete this text: "${text}"`
           }
         ],
-        temperature: 0.3 // Lower temperature for more deterministic suggestions
+        temperature: 0.3
       })
     });
 
@@ -47,7 +48,11 @@ export async function getAISuggestions(text: string, context: string = ''): Prom
 
     console.log('[AI] Extracted suggestion:', suggestion);
     return { suggestion, reasoning };
-  } catch (err) {
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      console.log('[AI Service] Request aborted by user typing.');
+      return { suggestion: '' };
+    }
     console.error('[AI Service] Error fetching suggestions:', err);
     return { suggestion: '' };
   }

@@ -29,6 +29,7 @@ class KeyHook extends EventEmitter {
     uIOhook.stop();
   }
   handleKeyDown(e) {
+    this.emit("keypress", e);
     if (this.debouncedTimer) {
       clearTimeout(this.debouncedTimer);
     }
@@ -237,20 +238,21 @@ try {
   }
 }
 const uia = new UIAutomation();
-const WORKER_URL = "https://cloudflare-ai-gateway.sk00990099009916.workers.dev/";
+const WORKER_URL = "https://cloudflare-ai-gateway.sk00990099009911.workers.dev/";
 const API_KEY = "Jl515OpIfKjIYJHTXFfCo0ufoTHNCzQWAL5DMPIS0HEHDrjw4MncZxIjkRcitUuqKVBvmDaVNWp4iSBGjz3w4EgUwGA3biGmeUsaGbsTuqnyhAsuhAF99tc7OerLtCphoFZJnXlFUEk7cBcyLmOwcVCDfMGcKCPCPIsT01b9bJCZbc0t5iZN3m3DcVHf37X2i2lVLZiypcC1ctNnwAbCq0oVrMELG3lEiq7OHC7HzVQ2cGS7oXyCBelICMrTNWpx";
-async function getAISuggestions(text, context = "") {
+async function getAISuggestions(text, signal, context = "") {
   var _a, _b, _c, _d, _e, _f;
   if (!text && !context) return { suggestion: "" };
   try {
     console.log("[AI] Sending request to worker...", { textLen: text.length });
     const response = await fetch(WORKER_URL, {
       method: "POST",
+      signal,
+      // Attach the cancellation signal
       headers: {
         "Authorization": `Bearer ${API_KEY}`,
         "Content-Type": "application/json",
         "x-session-affinity": "verbo-typing-session-1"
-        // Optional: unique per session
       },
       body: JSON.stringify({
         model: "glm-4.7-flash",
@@ -265,7 +267,6 @@ async function getAISuggestions(text, context = "") {
           }
         ],
         temperature: 0.3
-        // Lower temperature for more deterministic suggestions
       })
     });
     if (!response.ok) {
@@ -280,6 +281,10 @@ async function getAISuggestions(text, context = "") {
     console.log("[AI] Extracted suggestion:", suggestion);
     return { suggestion, reasoning };
   } catch (err) {
+    if (err.name === "AbortError") {
+      console.log("[AI Service] Request aborted by user typing.");
+      return { suggestion: "" };
+    }
     console.error("[AI Service] Error fetching suggestions:", err);
     return { suggestion: "" };
   }
@@ -293,6 +298,9 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path$1.join(process.env.APP_ROOT
 let win = null;
 let overlayWin = null;
 let lastSuggestion = "";
+let hideTimeout = null;
+let lastProcessName = "";
+let currentAbortController = null;
 function createWindow() {
   win = new BrowserWindow({
     icon: path$1.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
@@ -318,6 +326,8 @@ function createOverlayWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     focusable: false,
+    show: false,
+    paintWhenInitiallyHidden: true,
     webPreferences: {
       preload: path$1.join(__dirname$1, "preload.mjs")
     }
@@ -348,12 +358,21 @@ app.whenReady().then(() => {
   keyHook.on("typing-paused", async () => {
     console.log("[Main] Received typing-paused event");
     const context = await uia.getTextContext();
+    if (context.processName !== lastProcessName && lastSuggestion) {
+      console.log("[Main] Focus changed - hiding suggestion");
+      lastSuggestion = "";
+      overlayWin == null ? void 0 : overlayWin.hide();
+      overlayWin == null ? void 0 : overlayWin.webContents.send("hide-suggestion");
+    }
+    lastProcessName = context.processName;
     if (!context.fullText) {
       console.log("[Main] No text context found");
       return;
     }
     console.log("[Main] Requesting AI suggestions...");
-    const { suggestion } = await getAISuggestions(context.fullText.slice(-100));
+    if (currentAbortController) currentAbortController.abort();
+    currentAbortController = new AbortController();
+    const { suggestion } = await getAISuggestions(context.fullText.slice(-100), currentAbortController.signal);
     if (!suggestion) {
       console.log("[Main] No suggestion received from AI");
       return;
@@ -361,6 +380,7 @@ app.whenReady().then(() => {
     console.log("[Main] Suggestion received:", suggestion);
     lastSuggestion = suggestion;
     if (overlayWin) {
+      if (hideTimeout) clearTimeout(hideTimeout);
       if (context.caretRect) {
         console.log("[Main] Positioning ghost text at:", context.caretRect);
         overlayWin.setBounds({
@@ -370,7 +390,29 @@ app.whenReady().then(() => {
           height: 100
         });
       }
+      overlayWin.showInactive();
       overlayWin.webContents.send("show-suggestion", suggestion);
+      hideTimeout = setTimeout(() => {
+        if (lastSuggestion) {
+          console.log("[Main] Idle timeout - hiding suggestion");
+          lastSuggestion = "";
+          overlayWin == null ? void 0 : overlayWin.hide();
+          overlayWin == null ? void 0 : overlayWin.webContents.send("hide-suggestion");
+        }
+      }, 8e3);
+    }
+  });
+  keyHook.on("keypress", (e) => {
+    if (e.keycode !== 15 && e.keycode !== 1 && lastSuggestion) {
+      console.log("[Main] Typing resumed - hiding ghost text");
+      lastSuggestion = "";
+      if (hideTimeout) clearTimeout(hideTimeout);
+      if (currentAbortController) {
+        currentAbortController.abort();
+        currentAbortController = null;
+      }
+      overlayWin == null ? void 0 : overlayWin.hide();
+      overlayWin == null ? void 0 : overlayWin.webContents.send("hide-suggestion");
     }
   });
   keyHook.on("tab-pressed", async () => {
@@ -379,12 +421,14 @@ app.whenReady().then(() => {
       console.log("[Main] Injecting suggestion:", lastSuggestion);
       await uia.injectText(lastSuggestion);
       lastSuggestion = "";
+      overlayWin == null ? void 0 : overlayWin.hide();
       overlayWin == null ? void 0 : overlayWin.webContents.send("hide-suggestion");
     }
   });
   keyHook.on("esc-pressed", () => {
     console.log("[Main] Received esc-pressed event");
     lastSuggestion = "";
+    overlayWin == null ? void 0 : overlayWin.hide();
     overlayWin == null ? void 0 : overlayWin.webContents.send("hide-suggestion");
   });
 });

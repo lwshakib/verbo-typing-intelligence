@@ -28,6 +28,9 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 let win: BrowserWindow | null = null
 let overlayWin: BrowserWindow | null = null
 let lastSuggestion: string = ''
+let hideTimeout: NodeJS.Timeout | null = null
+let lastProcessName: string = ''
+let currentAbortController: AbortController | null = null
 
 function createWindow() {
   win = new BrowserWindow({
@@ -58,6 +61,8 @@ function createOverlayWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     focusable: false,
+    show: false,
+    paintWhenInitiallyHidden: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
@@ -100,13 +105,27 @@ app.whenReady().then(() => {
     console.log('[Main] Received typing-paused event');
     const context = await uia.getTextContext()
     
+    // Auto-hide if focus changed
+    if (context.processName !== lastProcessName && lastSuggestion) {
+      console.log('[Main] Focus changed - hiding suggestion');
+      lastSuggestion = ''
+      overlayWin?.hide()
+      overlayWin?.webContents.send('hide-suggestion')
+    }
+    lastProcessName = context.processName
+
     if (!context.fullText) {
       console.log('[Main] No text context found');
       return;
     }
 
     console.log('[Main] Requesting AI suggestions...');
-    const { suggestion } = await getAISuggestions(context.fullText.slice(-100))
+    
+    // Cancel any pending request
+    if (currentAbortController) currentAbortController.abort();
+    currentAbortController = new AbortController();
+    
+    const { suggestion } = await getAISuggestions(context.fullText.slice(-100), currentAbortController.signal)
     
     if (!suggestion) {
       console.log('[Main] No suggestion received from AI');
@@ -117,6 +136,9 @@ app.whenReady().then(() => {
     lastSuggestion = suggestion
 
     if (overlayWin) {
+      // Clear existing timeout
+      if (hideTimeout) clearTimeout(hideTimeout);
+      
       if (context.caretRect) {
         console.log('[Main] Positioning ghost text at:', context.caretRect);
         overlayWin.setBounds({
@@ -126,7 +148,33 @@ app.whenReady().then(() => {
           height: 100
         })
       }
+      overlayWin.showInactive()
       overlayWin.webContents.send('show-suggestion', suggestion)
+
+      // Set auto-hide timeout (8 seconds)
+      hideTimeout = setTimeout(() => {
+        if (lastSuggestion) {
+          console.log('[Main] Idle timeout - hiding suggestion');
+          lastSuggestion = ''
+          overlayWin?.hide()
+          overlayWin?.webContents.send('hide-suggestion')
+        }
+      }, 8000);
+    }
+  })
+
+  keyHook.on('keypress', (e: any) => {
+    // Hide overlay immediately on any key except Tab (15) or Esc (1)
+    if (e.keycode !== 15 && e.keycode !== 1 && lastSuggestion) {
+      console.log('[Main] Typing resumed - hiding ghost text');
+      lastSuggestion = ''
+      if (hideTimeout) clearTimeout(hideTimeout);
+      if (currentAbortController) {
+        currentAbortController.abort();
+        currentAbortController = null;
+      }
+      overlayWin?.hide()
+      overlayWin?.webContents.send('hide-suggestion')
     }
   })
 
@@ -136,6 +184,7 @@ app.whenReady().then(() => {
       console.log('[Main] Injecting suggestion:', lastSuggestion);
       await uia.injectText(lastSuggestion)
       lastSuggestion = ''
+      overlayWin?.hide()
       overlayWin?.webContents.send('hide-suggestion')
     }
   })
@@ -143,6 +192,7 @@ app.whenReady().then(() => {
   keyHook.on('esc-pressed', () => {
     console.log('[Main] Received esc-pressed event');
     lastSuggestion = ''
+    overlayWin?.hide()
     overlayWin?.webContents.send('hide-suggestion')
   })
 })
