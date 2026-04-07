@@ -1,9 +1,10 @@
 import { app, BrowserWindow } from 'electron'
-import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { keyHook } from './hook'
+import { uia } from './uia'
+import { getAISuggestions } from '../src/services/ai'
 
-const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // The built directory structure
@@ -24,7 +25,9 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
-let win: BrowserWindow | null
+let win: BrowserWindow | null = null
+let overlayWin: BrowserWindow | null = null
+let lastSuggestion: string = ''
 
 function createWindow() {
   win = new BrowserWindow({
@@ -42,14 +45,34 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
-    // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
 }
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+function createOverlayWindow() {
+  overlayWin = new BrowserWindow({
+    width: 600,
+    height: 100,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
+  })
+
+  overlayWin.setIgnoreMouseEvents(true, { forward: true })
+
+  if (VITE_DEV_SERVER_URL) {
+    overlayWin.loadURL(`${VITE_DEV_SERVER_URL}#/overlay`)
+  } else {
+    overlayWin.loadURL(`file://${path.join(RENDERER_DIST, 'index.html')}#/overlay`)
+  }
+}
+
+// Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
@@ -58,11 +81,73 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  createWindow()
+  createOverlayWindow()
+
+  // Initialize UIA (COM runtime)
+  uia.init()
+
+  // Start global key hook
+  keyHook.start()
+
+  keyHook.on('typing-paused', async () => {
+    console.log('[Main] Received typing-paused event');
+    const context = await uia.getTextContext()
+    
+    if (!context.fullText) {
+      console.log('[Main] No text context found');
+      return;
+    }
+
+    console.log('[Main] Requesting AI suggestions...');
+    const { suggestion } = await getAISuggestions(context.fullText.slice(-100))
+    
+    if (!suggestion) {
+      console.log('[Main] No suggestion received from AI');
+      return;
+    }
+
+    console.log('[Main] Suggestion received:', suggestion);
+    lastSuggestion = suggestion
+
+    if (overlayWin) {
+      if (context.caretRect) {
+        console.log('[Main] Positioning overlay at:', context.caretRect);
+        overlayWin.setBounds({
+          x: Math.round(context.caretRect.x + 20),
+          y: Math.round(context.caretRect.y + context.caretRect.height + 5),
+          width: 800,
+          height: 120
+        })
+      }
+      overlayWin.webContents.send('show-suggestion', suggestion, context.fullText)
+    }
+  })
+
+  keyHook.on('tab-pressed', async () => {
+    console.log('[Main] Received tab-pressed event');
+    if (lastSuggestion) {
+      console.log('[Main] Injecting suggestion:', lastSuggestion);
+      await uia.injectText(lastSuggestion)
+      lastSuggestion = ''
+      overlayWin?.webContents.send('hide-suggestion')
+    }
+  })
+
+  keyHook.on('esc-pressed', () => {
+    console.log('[Main] Received esc-pressed event');
+    lastSuggestion = ''
+    overlayWin?.webContents.send('hide-suggestion')
+  })
+})
+
+app.on('will-quit', () => {
+  keyHook.stop()
+  uia.cleanup()
+})
