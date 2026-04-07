@@ -2,6 +2,7 @@ import { uIOhook } from 'uiohook-napi';
 import { EventEmitter } from 'events';
 
 export class KeyHook extends EventEmitter {
+  private enabled = true;
   private debouncedTimer: NodeJS.Timeout | null = null;
   private debounceMs = 400; // Recommended 300-500ms
 
@@ -9,10 +10,23 @@ export class KeyHook extends EventEmitter {
     super();
   }
 
+  setEnabled(enabled: boolean) {
+    this.enabled = enabled;
+    if (!enabled && this.debouncedTimer) {
+      clearTimeout(this.debouncedTimer);
+      this.debouncedTimer = null;
+    }
+  }
+
   start() {
     uIOhook.on('keydown', (e: any) => {
-      // Keycodes: 15 = Tab, 1 = Esc
+      if (!this.enabled) return;
       this.handleKeyDown(e);
+    });
+
+    uIOhook.on('mousedown', (e: any) => {
+      if (!this.enabled) return;
+      this.emit('mousedown', e);
     });
 
     uIOhook.start();

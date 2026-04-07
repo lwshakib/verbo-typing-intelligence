@@ -31,6 +31,8 @@ let lastSuggestion: string = ''
 let hideTimeout: NodeJS.Timeout | null = null
 let lastProcessName: string = ''
 let currentAbortController: AbortController | null = null
+let suggestionHistory: any[] = []
+let activeContextStr: string = '' // Context at the time suggestion was generated
 
 function createWindow() {
   win = new BrowserWindow({
@@ -105,17 +107,22 @@ app.whenReady().then(() => {
     console.log('[Main] Received typing-paused event');
     const context = await uia.getTextContext()
     
-    // Auto-hide if focus changed
-    if (context.processName !== lastProcessName && lastSuggestion) {
-      console.log('[Main] Focus changed - hiding suggestion');
+    // Auto-hide if focus changed or context is empty
+    const isFocusChanged = context.processName !== lastProcessName;
+    const isTextEmpty = !context.fullText;
+
+    if ((isFocusChanged || isTextEmpty) && lastSuggestion) {
+      console.log('[Main] Focus changed or empty text - hiding suggestion');
       lastSuggestion = ''
+      if (currentAbortController) currentAbortController.abort();
       overlayWin?.hide()
       overlayWin?.webContents.send('hide-suggestion')
     }
+    
     lastProcessName = context.processName
 
-    if (!context.fullText) {
-      console.log('[Main] No text context found');
+    if (isTextEmpty) {
+      console.log('[Main] No text context found or field is empty');
       return;
     }
 
@@ -125,7 +132,14 @@ app.whenReady().then(() => {
     if (currentAbortController) currentAbortController.abort();
     currentAbortController = new AbortController();
     
-    const { suggestion } = await getAISuggestions(context.fullText.slice(-100), currentAbortController.signal)
+    // Increased context window to 500 for better "broad" understanding
+    activeContextStr = context.fullText.slice(-500);
+    
+    const { suggestion } = await getAISuggestions(
+      activeContextStr, 
+      currentAbortController.signal,
+      suggestionHistory
+    )
     
     if (!suggestion) {
       console.log('[Main] No suggestion received from AI');
@@ -167,6 +181,11 @@ app.whenReady().then(() => {
     // Hide overlay immediately on any key except Tab (15) or Esc (1)
     if (e.keycode !== 15 && e.keycode !== 1 && lastSuggestion) {
       console.log('[Main] Typing resumed - hiding ghost text');
+      
+      // Record implicit rejection (user typed over it)
+      suggestionHistory.push({ context: activeContextStr, suggestion: lastSuggestion, accepted: false });
+      if (suggestionHistory.length > 10) suggestionHistory.shift();
+
       lastSuggestion = ''
       if (hideTimeout) clearTimeout(hideTimeout);
       if (currentAbortController) {
@@ -181,8 +200,31 @@ app.whenReady().then(() => {
   keyHook.on('tab-pressed', async () => {
     console.log('[Main] Received tab-pressed event');
     if (lastSuggestion) {
-      console.log('[Main] Injecting suggestion:', lastSuggestion);
-      await uia.injectText(lastSuggestion)
+      // Smart Spacing: Ensure there's a space if we're between two words and no space exists
+      const context = await uia.getTextContext();
+      let finalSuggestion = lastSuggestion;
+      
+      const lastChar = context.fullText?.slice(-1);
+      const firstCharSuggestion = lastSuggestion[0];
+      
+      // If last char is a letter/digit and first suggestion char is a letter/digit, and there's no space...
+      if (lastChar && firstCharSuggestion && 
+          /[a-zA-Z0-9]/.test(lastChar) && 
+          /[a-zA-Z0-9]/.test(firstCharSuggestion)) {
+        console.log('[Main] Smart Spacing: Adding leading space');
+        finalSuggestion = ' ' + lastSuggestion;
+      }
+
+      console.log('[Main] Injecting suggestion (with 10ms safety delay):', finalSuggestion);
+      
+      // Record acceptance in history
+      suggestionHistory.push({ context: activeContextStr, suggestion: lastSuggestion, accepted: true });
+      if (suggestionHistory.length > 10) suggestionHistory.shift();
+      
+      // Defensive delay: Wait for the target app to process its own Tab event
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      await uia.injectText(finalSuggestion)
       lastSuggestion = ''
       overlayWin?.hide()
       overlayWin?.webContents.send('hide-suggestion')
@@ -191,9 +233,26 @@ app.whenReady().then(() => {
 
   keyHook.on('esc-pressed', () => {
     console.log('[Main] Received esc-pressed event');
+    if (lastSuggestion) {
+      suggestionHistory.push({ context: activeContextStr, suggestion: lastSuggestion, accepted: false });
+      if (suggestionHistory.length > 10) suggestionHistory.shift();
+    }
     lastSuggestion = ''
     overlayWin?.hide()
     overlayWin?.webContents.send('hide-suggestion')
+  })
+
+  keyHook.on('mousedown', () => {
+    if (lastSuggestion || currentAbortController) {
+      console.log('[Main] Mouse click detected - hiding ghost text and aborting AI');
+      lastSuggestion = ''
+      if (currentAbortController) {
+        currentAbortController.abort();
+        currentAbortController = null;
+      }
+      overlayWin?.hide()
+      overlayWin?.webContents.send('hide-suggestion')
+    }
   })
 })
 
