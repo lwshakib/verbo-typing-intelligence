@@ -5,7 +5,6 @@ import { generateText } from 'ai';
 
 export interface AISuggestionResponse {
   suggestion: string;
-  reasoning?: any;
 }
 
 export interface AIHistoryItem {
@@ -33,19 +32,6 @@ export async function getAISuggestions(
     if (config.model.startsWith('gemini-')) {
       const google = createGoogleGenerativeAI({ apiKey: config.apiKey });
       model = google(config.model);
-
-      // Default thinking config for newer Gemini models (if supported)
-      const isGemini3 = config.model.includes('gemini-3');
-      const isGemini25 = config.model.includes('gemini-2.5');
-
-      if (isGemini3 || isGemini25) {
-        providerOptions.google = {
-          thinkingConfig: {
-            thinkingLevel: 'low',
-            includeThoughts: true,
-          },
-        };
-      }
     } else if (
       config.model.startsWith('gpt-') || 
       config.model.startsWith('o1') || 
@@ -78,7 +64,7 @@ Strict Rules:
 
     console.log(`[AI] Requesting completion with model: ${config.model}`);
 
-    const { text: suggestion, reasoning } = await generateText({
+    const { text: suggestion } = await generateText({
       model: model,
       system: systemInstruction,
       prompt: prompt,
@@ -89,10 +75,7 @@ Strict Rules:
     const cleanSuggestion = (suggestion || '').replace(/^[\r\n]+/, '').replace(/[\r\n]+$/, '');
     
     console.log('[AI] Suggestion:', cleanSuggestion);
-    return { 
-      suggestion: cleanSuggestion,
-      reasoning: reasoning 
-    };
+    return { suggestion: cleanSuggestion };
   } catch (err: any) {
     if (err.name === 'AbortError' || signal?.aborted) {
       return { suggestion: '' };

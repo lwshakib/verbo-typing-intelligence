@@ -63,7 +63,7 @@ function createWindow() {
     resizable: false,
     maximizable: false,
     skipTaskbar: false,
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
