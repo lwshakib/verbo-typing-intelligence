@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react'
-import { 
-  Minus, 
-  Square, 
-  X, 
-  Save 
-} from 'lucide-react'
+import { Minus, X, Save } from 'lucide-react'
 import './App.css'
 
 function App() {
   const [apiKey, setApiKey] = useState('')
   const [model, setModel] = useState('gemini-3.1-flash-lite-preview')
+  const [processingEnabled, setProcessingEnabled] = useState(true)
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   useEffect(() => {
@@ -17,6 +13,7 @@ function App() {
     (window as any).electron.getConfig().then((config: any) => {
       if (config.apiKey) setApiKey(config.apiKey)
       if (config.model) setModel(config.model)
+      if (config.processingEnabled !== undefined) setProcessingEnabled(config.processingEnabled)
     })
   }, [])
 
@@ -25,7 +22,8 @@ function App() {
     try {
       (window as any).electron.saveConfig({ 
         apiKey, 
-        model 
+        model,
+        processingEnabled
       })
       setTimeout(() => setStatus('saved'), 500)
       setTimeout(() => setStatus('idle'), 3000)
@@ -44,9 +42,8 @@ function App() {
           <span>VERBO AI</span>
         </div>
         <div className="window-controls">
-          <button onClick={() => win.minimize()} className="control-btn"><Minus size={14} /></button>
-          <button onClick={() => win.maximize()} className="control-btn"><Square size={12} /></button>
-          <button onClick={() => win.close()} className="control-btn close"><X size={14} /></button>
+          <button onClick={() => win.minimize()} className="control-btn"><Minus size={16} strokeWidth={2} /></button>
+          <button onClick={() => win.close()} className="control-btn close"><X size={16} strokeWidth={2} /></button>
         </div>
       </div>
 
@@ -137,7 +134,22 @@ function App() {
             </select>
           </div>
 
-          <button 
+          <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+            <div>
+              <label>Enabled</label>
+              <p className="hint">Predict text when you are typing.</p>
+            </div>
+            <label className="toggle-switch">
+              <input 
+                type="checkbox" 
+                checked={processingEnabled} 
+                onChange={(e) => setProcessingEnabled(e.target.checked)} 
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
+
+          <button  
             className={`save-btn ${status}`} 
             onClick={handleSave}
             disabled={status === 'saving'}
@@ -145,7 +157,7 @@ function App() {
             {status === 'saving' ? 'Saving...' : 
              status === 'saved' ? 'Saved' : 
              status === 'error' ? 'Error' : 
-             <><Save size={18} /> Save Changes</>}
+             <><Save size={16} strokeWidth={2} /> Save Changes</>}
           </button>
         </section>
 

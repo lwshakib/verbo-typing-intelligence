@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld('electron', {
   close: () => ipcRenderer.send('window-close'),
 
   // Config Management
-  saveConfig: (config: { apiKey: string, model: string }) => ipcRenderer.send('save-config', config),
+  saveConfig: (config: { apiKey: string, model: string, processingEnabled?: boolean }) => ipcRenderer.send('save-config', config),
   getConfig: () => ipcRenderer.invoke('get-config'),
 
   // IPC communication for data

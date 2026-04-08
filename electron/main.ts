@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Tray, Menu } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import Store from 'electron-store'
@@ -28,6 +28,23 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
+// Platform-specific icon paths
+const getIconPath = (): string => {
+  const platform = process.platform;
+  const basePath = process.env.APP_ROOT;
+
+  switch (platform) {
+    case 'win32':
+      return path.join(basePath, 'public', 'icons', 'win', 'icon.ico');
+    case 'darwin':
+      return path.join(basePath, 'public', 'icons', 'mac', 'icon.icns');
+    default:
+      return path.join(basePath, 'public', 'icons', 'png', '256x256.png');
+  }
+};
+
+const iconPath = getIconPath();
+
 let win: BrowserWindow | null = null
 let overlayWin: BrowserWindow | null = null
 let lastSuggestion: string = ''
@@ -36,15 +53,18 @@ let lastProcessName: string = ''
 let currentAbortController: AbortController | null = null
 let suggestionHistory: any[] = []
 let activeContextStr: string = '' // Context at the time suggestion was generated
+let tray: Tray | null = null; // Prevent garbage collection
 
 function createWindow() {
   win = new BrowserWindow({
     width: 400,
     height: 600,
     frame: false,
+    resizable: false,
+    maximizable: false,
     skipTaskbar: true,
     alwaysOnTop: true,
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
@@ -110,6 +130,36 @@ app.whenReady().then(() => {
 
   // Start global key hook
   keyHook.start()
+  const processingEnabled = store.get('processingEnabled', true) as boolean;
+  const initialApiKey = store.get('apiKey') as string;
+  const initialModel = store.get('model') as string;
+  keyHook.setEnabled(processingEnabled && !!initialApiKey && !!initialModel);
+
+  // Set up Tray
+  let trayIconPath = iconPath;
+  try {
+    tray = new Tray(trayIconPath);
+    const contextMenu = Menu.buildFromTemplate([
+      { 
+        label: 'Configurations', 
+        icon: path.join(process.env.VITE_PUBLIC, 'icons/png/16x16.png'),
+        click: () => win?.show() 
+      },
+      { type: 'separator' },
+      { 
+        label: 'Quit Verbo', 
+        icon: path.join(process.env.VITE_PUBLIC, 'icons/png/16x16.png'),
+        click: () => { app.quit() } 
+      }
+    ])
+    tray.setToolTip('Verbo Typing Intelligence')
+    tray.setContextMenu(contextMenu)
+    tray.on('click', () => {
+      tray?.popUpContextMenu();
+    })
+  } catch (err) {
+    console.error('[Main] Failed to initialize Tray icon:', err);
+  }
 
   keyHook.on('typing-paused', async () => {
     console.log('[Main] Received typing-paused event');
@@ -284,18 +334,30 @@ app.whenReady().then(() => {
       win?.maximize()
     }
   })
-  ipcMain.on('window-close', () => win?.close())
+  ipcMain.on('window-close', () => win?.hide())
 
   // Config Management
-  ipcMain.on('save-config', (_, { apiKey, model }) => {
+  ipcMain.on('save-config', (_, { apiKey, model, processingEnabled }) => {
     store.set('apiKey', apiKey)
     store.set('model', model)
-    console.log('[Main] Config saved:', { model })
+    if (processingEnabled !== undefined) {
+      store.set('processingEnabled', processingEnabled)
+    }
+    
+    // Evaluate if hook should be enabled
+    const currentApiKey = store.get('apiKey') as string;
+    const currentModel = store.get('model') as string;
+    const currentEnabled = store.get('processingEnabled', true) as boolean;
+    const shouldRun = Boolean(currentEnabled && currentApiKey && currentModel);
+    keyHook.setEnabled(shouldRun);
+
+    console.log('[Main] Config saved:', { model, shouldRun })
   })
 
   ipcMain.handle('get-config', () => ({
     apiKey: store.get('apiKey'),
-    model: store.get('model') || 'gemini-3.1-flash-lite-preview'
+    model: store.get('model') || 'gemini-3.1-flash-lite-preview',
+    processingEnabled: store.get('processingEnabled', true)
   }))
 })
 
