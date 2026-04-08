@@ -16,6 +16,8 @@ Verbo Typing Intelligence is an Electron desktop app that predicts the next text
 - Supports multiple AI providers through model selection (Gemini, OpenAI, Anthropic)
 - Tray icon with quick actions (Configurations, Quit)
 
+![Verbo AI configuration window](./public/verbo-config-window.png)
+
 ## Prerequisites
 - Node.js and npm
 - Windows (UI Automation bridge uses PowerShell + Windows UI Automation APIs)
