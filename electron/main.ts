@@ -1,9 +1,12 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import Store from 'electron-store'
 import { keyHook } from './hook'
 import { uia } from './uia'
 import { getAISuggestions } from '../src/services/ai'
+
+const store = new Store();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -36,6 +39,11 @@ let activeContextStr: string = '' // Context at the time suggestion was generate
 
 function createWindow() {
   win = new BrowserWindow({
+    width: 400,
+    height: 600,
+    frame: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
@@ -135,10 +143,22 @@ app.whenReady().then(() => {
     // Increased context window to 500 for better "broad" understanding
     activeContextStr = context.fullText.slice(-500);
     
+    const config = {
+      apiKey: store.get('apiKey') as string,
+      model: store.get('model') as string || 'gemini-3.1-flash-lite-preview'
+    };
+
+    if (!config.apiKey) {
+      console.log('[Main] No API key configured. Skipping AI request.');
+      return;
+    }
+
     const { suggestion } = await getAISuggestions(
       activeContextStr, 
       currentAbortController.signal,
-      suggestionHistory
+      suggestionHistory,
+      '',
+      config
     )
     
     if (!suggestion) {
@@ -254,6 +274,29 @@ app.whenReady().then(() => {
       overlayWin?.webContents.send('hide-suggestion')
     }
   })
+
+  // Window Controls
+  ipcMain.on('window-minimize', () => win?.minimize())
+  ipcMain.on('window-maximize', () => {
+    if (win?.isMaximized()) {
+      win.unmaximize()
+    } else {
+      win?.maximize()
+    }
+  })
+  ipcMain.on('window-close', () => win?.close())
+
+  // Config Management
+  ipcMain.on('save-config', (_, { apiKey, model }) => {
+    store.set('apiKey', apiKey)
+    store.set('model', model)
+    console.log('[Main] Config saved:', { model })
+  })
+
+  ipcMain.handle('get-config', () => ({
+    apiKey: store.get('apiKey'),
+    model: store.get('model') || 'gemini-3.1-flash-lite-preview'
+  }))
 })
 
 app.on('will-quit', () => {
