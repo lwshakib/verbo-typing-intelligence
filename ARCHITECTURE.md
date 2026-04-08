@@ -16,14 +16,14 @@ This document explains how Verbo Typing Intelligence works end-to-end: global in
 
 ```mermaid
 flowchart TD
-  A[Global input hook (KeyHook)] --> B[Typing paused event]
-  B --> C[UI Automation: getTextContext()]
-  C --> D[AI: getAISuggestions()]
-  D --> E[Main process: position + send suggestion to overlay]
-  E --> F[Overlay renderer shows suggestion]
-  F --> G[Tab pressed event]
-  G --> H[UI Automation: injectText()]
-  H --> I[Hide overlay]
+  A["Global input hook (KeyHook)"] --> B["Typing paused event"]
+  B --> C["UI Automation: getTextContext()"]
+  C --> D["AI: getAISuggestions()"]
+  D --> E["Main process: position + send suggestion to overlay"]
+  E --> F["Overlay renderer shows suggestion"]
+  F --> G["Tab pressed event"]
+  G --> H["UI Automation: injectText()"]
+  H --> I["Hide overlay"]
 ```
 
 ## Step-by-step runtime behavior
