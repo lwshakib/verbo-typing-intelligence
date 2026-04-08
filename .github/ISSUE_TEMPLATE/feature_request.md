@@ -1,23 +1,23 @@
 ---
-name: 💡 Feature Request
-about: Suggest a new feature for Timbre AI
+name: 💡 Feature request
+about: Suggest an improvement for Verbo Typing Intelligence
 title: '[FEAT] '
 labels: ['feature']
 assignees: []
 ---
 
-## 💡 Feature Description
+## Feature description
 
-<!-- What functionality would you like to see for the Timbre AI community? -->
+<!-- What would you like to change or add? -->
 
-## 🛠️ Benefit
+## Why this helps
 
-<!-- How would this change benefit the synthesis engine or user workflow? -->
+<!-- How would this improve typing suggestions, overlay UX, or reliability? -->
 
-## 🧐 Technical Approach (If any)
+## Possible approach (optional)
 
 <!-- A clear and concise description of how to implement this change. -->
 
-## 📋 Additional Context
+## Additional context
 
-<!-- Any additional information you think is relevant for the Timbre AI community. -->
+<!-- Mockups, examples, or links to related issues. -->

@@ -1,23 +1,23 @@
 ---
-name: 🧐 Questions & Support
-about: Ask a question about Timbre AI or request support.
+name: 🧐 Question / support
+about: Ask a question or request help with setup/usage
 title: '[Q] '
 labels: ['question']
 assignees: []
 ---
 
-## 🧐 Question Description
+## Question
 
 <!-- A clear and concise description of the question you would like to ask. -->
 
-## 🛠️ Topic
+## Topic
 
-<!-- Is this related to Synthesis, Cloning, or Registry? -->
+<!-- e.g. setup, configuration UI, overlay, Windows UIA, key hook, packaging -->
 
-## 🧐 Technical Context (If any)
+## Technical context (optional)
 
 <!-- A clear and concise description of the problem you're having. -->
 
-## 📋 Additional Context
+## Additional context
 
-<!-- Any additional information you think is relevant for the Timbre AI community. -->
+<!-- Logs, screenshots, OS details, and what you already tried. -->

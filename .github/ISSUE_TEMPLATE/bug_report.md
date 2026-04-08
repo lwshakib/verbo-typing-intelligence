@@ -1,26 +1,27 @@
 ---
-name: 🐛 Bug Report
-about: Create a report to help us improve Timbre AI
+name: 🐛 Bug report
+about: Report a bug in Verbo Typing Intelligence
 title: '[BUG] '
 labels: ['bug']
 assignees: []
 ---
 
-## 🐛 Bug Description
+## Bug description
 
-<!-- A clear and concise description of what the bug is. -->
+<!-- Clear, concise description of the bug. -->
 
-## 🛠️ Feature Area
+## Area
 
-- [ ] Synthesis Engine
-- [ ] Voice Cloning Alpha
-- [ ] Model Registry
-- [ ] UI/UX Components
-- [ ] Authentication & Security
-- [ ] API & Server Actions
-- [ ] Other: **\_\_**
+- [ ] Overlay (ghost text)
+- [ ] Global key hook (uiohook-napi)
+- [ ] Windows UI Automation bridge (PowerShell/UIA)
+- [ ] AI suggestions (provider/model)
+- [ ] Configuration UI (API key/model/enabled)
+- [ ] Tray / taskbar / window behavior
+- [ ] Packaging / installer (electron-builder / NSIS)
+- [ ] Other: ____
 
-## 🔁 Reproduction Steps
+## Reproduction steps
 
 <!-- Steps to reproduce the behavior:
 1. Go to '...'
@@ -29,21 +30,33 @@ assignees: []
 4. See error
 -->
 
-## 🧐 Expected Behavior
+## Expected behavior
 
 <!-- A clear and concise description of what you expected to happen. -->
 
-## 📸 Screenshots
+## Screenshots / recordings
 
 <!-- If applicable, add screenshots to help explain your problem. -->
-<!-- Use screenshots from the UI to demonstrate the issue. -->
 
-## 💻 Environment
+If this involves the overlay, a short screen recording is very helpful.
 
-- **OS:** [e.g. Windows 11, macOS Sequoia]
-- **Browser:** [e.g. Chrome 120, Safari 17]
-- **Version:** [e.g. v2.4.0]
+## Logs
 
-## 📋 Additional Context
+If possible, paste logs from the terminal you launched the app from.
 
-<!-- Add any other context about the problem here (e.g. console logs, R2 upload errors). -->
+```text
+PASTE LOGS HERE
+```
+
+## Environment
+
+- **OS**: [e.g. Windows 10 22H2 / Windows 11 23H2]
+- **Install method**: [dev (`npm run dev`) | packaged (NSIS installer) | `win-unpacked`]
+- **App version**: [e.g. 0.0.0]
+- **Electron version**: [e.g. 30.x]
+- **AI provider + model**: [e.g. Gemini `gemini-3.1-flash-lite-preview`]
+- **Target app** (where you were typing): [e.g. Chrome, VS Code, Word, Notepad]
+
+## Additional context
+
+<!-- Any other context that helps reproduce the issue reliably. -->

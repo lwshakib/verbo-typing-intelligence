@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question / Support
+    about: Ask usage/setup questions
+    url: https://github.com/<your-org>/<your-repo>/discussions
+  - name: Security issues
+    about: Please do not file public issues for security reports
+    url: https://github.com/<your-org>/<your-repo>/security/policy
+

@@ -1,23 +1,23 @@
 ---
-name: 📖 Documentation Improvements
-about: Suggest improvements or report issues with Timbre AI documentation
+name: 📖 Documentation
+about: Suggest improvements or report issues with Verbo documentation
 title: '[DOC] '
 labels: ['documentation']
 assignees: []
 ---
 
-## 📖 Current Documentation
+## Current documentation
 
 <!-- Detail the current documentation that needs improvement. -->
 
-## 🛠️ Suggested Changes
+## Suggested change
 
 <!-- A clear and concise description of the changes you would like to see. -->
 
-## 🧐 Why?
+## Why?
 
-<!-- Why is this documentation change necessary for the Timbre AI community? -->
+<!-- Why is this documentation change helpful for Verbo users/contributors? -->
 
-## 📋 Additional Context
+## Additional context
 
 <!-- Any additional information you think is relevant. -->
