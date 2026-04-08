@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Minus, X, Save } from 'lucide-react'
 import './App.css'
+import Logo from './components/Logo'
 
 function App() {
   const [apiKey, setApiKey] = useState('')
@@ -39,7 +40,8 @@ function App() {
       {/* Custom Title Bar */}
       <div className="title-bar">
         <div className="title">
-          <span>VERBO AI</span>
+          <Logo className="app-icon" size={18} color="#0f172a" />
+          <span>Verbo AI</span>
         </div>
         <div className="window-controls">
           <button onClick={() => win.minimize()} className="control-btn"><Minus size={16} strokeWidth={2} /></button>

@@ -57,6 +57,13 @@ body {
   letter-spacing: -0.02em;
 }
 
+.app-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  display: block;
+}
+
 .window-controls {
   display: flex;
   gap: 2px;
@@ -76,6 +83,12 @@ body {
   border-radius: 0;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.control-btn:focus,
+.control-btn:focus-visible {
+  outline: none;
+  border-color: transparent;
 }
 
 .control-btn:hover {
