@@ -31,15 +31,15 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 // Platform-specific icon paths
 const getIconPath = (): string => {
   const platform = process.platform;
-  const basePath = process.env.APP_ROOT;
+  const basePath = process.env.VITE_PUBLIC ?? process.env.APP_ROOT;
 
   switch (platform) {
     case 'win32':
-      return path.join(basePath, 'public', 'icons', 'win', 'icon.ico');
+      return path.join(basePath, 'icons', 'win', 'icon.ico');
     case 'darwin':
-      return path.join(basePath, 'public', 'icons', 'mac', 'icon.icns');
+      return path.join(basePath, 'icons', 'mac', 'icon.icns');
     default:
-      return path.join(basePath, 'public', 'icons', 'png', '256x256.png');
+      return path.join(basePath, 'icons', 'png', '256x256.png');
   }
 };
 
@@ -62,7 +62,7 @@ function createWindow() {
     frame: false,
     resizable: false,
     maximizable: false,
-    skipTaskbar: true,
+    skipTaskbar: false,
     alwaysOnTop: true,
     icon: iconPath,
     webPreferences: {
@@ -122,6 +122,11 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  if (process.platform === 'win32') {
+    // Ensures proper taskbar grouping/icon behavior on Windows.
+    app.setAppUserModelId('com.verbo.typingintelligence')
+  }
+
   createWindow()
   createOverlayWindow()
 

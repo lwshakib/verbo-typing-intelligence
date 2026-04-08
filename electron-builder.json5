@@ -1,7 +1,7 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
+  "appId": "com.verbo.typingintelligence",
   "asar": true,
   "asarUnpack": [
     "node_modules/uiohook-napi/**/*",
@@ -22,6 +22,7 @@
     "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
   },
   "win": {
+    "icon": "public/icons/win/icon.ico",
     "target": [
       {
         "target": "nsis",
@@ -36,7 +37,9 @@
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
+    "deleteAppDataOnUninstall": false,
+    "installerIcon": "public/icons/win/icon.ico",
+    "uninstallerIcon": "public/icons/win/icon.ico"
   },
   "linux": {
     "target": [
