@@ -24,7 +24,7 @@ This project is an Electron app with a renderer UI, a main process, and a Window
 ## Add the upstream remote (recommended)
 This keeps your fork in sync with the original repo:
 ```bash
-git remote add upstream https://github.com/<your-org>/<your-repo>.git
+git remote add upstream https://github.com/lwshakib/verbo-typing-intelligence.git
 git remote -v
 ```
 

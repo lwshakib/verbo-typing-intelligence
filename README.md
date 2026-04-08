@@ -26,7 +26,7 @@ Verbo Typing Intelligence is an Electron desktop app that predicts the next text
 ## Clone + Setup
 1. Clone the repository:
    ```bash
-   git clone https://github.com/<your-org>/<your-repo>.git
+   git clone https://github.com/lwshakib/verbo-typing-intelligence.git
    cd <your-repo>
    ```
 2. Install dependencies:
