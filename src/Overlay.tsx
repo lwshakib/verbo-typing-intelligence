@@ -13,15 +13,16 @@ export default function Overlay() {
       setSuggestion(null);
     };
 
-    if (window.ipcRenderer) {
-      window.ipcRenderer.on('show-suggestion', handleShowSuggestion);
-      window.ipcRenderer.on('hide-suggestion', handleHideSuggestion);
+    const api = (window as any).electron;
+    if (api?.on) {
+      api.on('show-suggestion', handleShowSuggestion);
+      api.on('hide-suggestion', handleHideSuggestion);
     }
 
     return () => {
-      if (window.ipcRenderer) {
-        window.ipcRenderer.off('show-suggestion', handleShowSuggestion);
-        window.ipcRenderer.off('hide-suggestion', handleHideSuggestion);
+      if (api?.off) {
+        api.off('show-suggestion', handleShowSuggestion);
+        api.off('hide-suggestion', handleHideSuggestion);
       }
     };
   }, []);

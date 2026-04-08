@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Tray, Menu, screen } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import Store from 'electron-store'
@@ -93,12 +93,15 @@ function createOverlayWindow() {
     focusable: false,
     show: false,
     paintWhenInitiallyHidden: true,
+    fullscreenable: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
   })
 
   overlayWin.setIgnoreMouseEvents(true, { forward: true })
+  // Keep overlay above normal windows without stealing focus.
+  overlayWin.setAlwaysOnTop(true, 'screen-saver')
 
   if (VITE_DEV_SERVER_URL) {
     overlayWin.loadURL(`${VITE_DEV_SERVER_URL}#/overlay`)
@@ -228,13 +231,28 @@ app.whenReady().then(() => {
       // Clear existing timeout
       if (hideTimeout) clearTimeout(hideTimeout);
       
+      // Ensure overlay stays on top (even after focus changes).
+      overlayWin.setAlwaysOnTop(true, 'screen-saver')
+
       if (context.caretRect) {
         console.log('[Main] Positioning ghost text at:', context.caretRect);
         overlayWin.setBounds({
           x: Math.round(context.caretRect.x + 2),
           y: Math.round(context.caretRect.y),
           width: 800,
-          height: 100
+          height: 100,
+        })
+      } else {
+        // Fallback: show at top-center of the current display when caret position is unavailable.
+        const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+        const workArea = display.workArea
+        const width = 800
+        const height = 100
+        overlayWin.setBounds({
+          x: Math.round(workArea.x + (workArea.width - width) / 2),
+          y: Math.round(workArea.y + 12),
+          width,
+          height,
         })
       }
       overlayWin.showInactive()
