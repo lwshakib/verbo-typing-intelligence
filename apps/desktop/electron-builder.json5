@@ -2,27 +2,32 @@
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "com.verbo.typingintelligence",
+  "productName": "Verbo Typing Intelligence",
+  "copyright": "Copyright © 2026 Verbo Typing Intelligence",
   "asar": true,
   "npmRebuild": false,
   "asarUnpack": [
     "node_modules/uiohook-napi/**/*",
     "node_modules/ffi-napi/**/*"
   ],
-  "productName": "Verbo Typing Intelligence",
-  "directories": {
-    "output": "release/${version}"
-  },
   "files": [
     "dist",
     "dist-electron"
   ],
+  "directories": {
+    "output": "release/${version}",
+    "buildResources": "public"
+  },
   "mac": {
+    "icon": "public/icons/mac/icon.icns",
+    "category": "public.app-category.utilities",
     "target": [
       "dmg"
     ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+    "artifactName": "${productName}-Mac-${version}.${ext}"
   },
   "win": {
+    "publisherName": "Shakib Khan",
     "icon": "public/icons/win/icon.ico",
     "target": [
       {
@@ -39,13 +44,24 @@
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
     "deleteAppDataOnUninstall": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Verbo Typing Intelligence",
     "installerIcon": "public/icons/win/icon.ico",
     "uninstallerIcon": "public/icons/win/icon.ico"
   },
   "linux": {
+    "icon": "public/icons/png",
     "target": [
       "AppImage"
     ],
+    "category": "Utility",
     "artifactName": "${productName}-Linux-${version}.${ext}"
+  },
+  "publish": {
+    "provider": "github",
+    "owner": "lwshakib",
+    "repo": "verbo-typing-intelligence",
+    "releaseType": "release"
   }
 }

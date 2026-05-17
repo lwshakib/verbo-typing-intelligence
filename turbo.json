@@ -19,6 +19,10 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "release": {
+      "dependsOn": ["^build"],
+      "outputs": ["release/**", "dist/**", "dist-electron/**"]
     }
   }
 }
