@@ -4,11 +4,21 @@ const { autoUpdater } = pkg
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import Store from 'electron-store'
+import os from 'os'
+import fs from 'fs'
 import { keyHook } from './hook'
 import { uia } from './uia'
-import { getAISuggestions } from '../src/services/ai'
+import { getAISuggestions } from './ai'
 
-const store = new Store();
+const verboDir = path.join(os.homedir(), '.verbo');
+if (!fs.existsSync(verboDir)) {
+  fs.mkdirSync(verboDir, { recursive: true });
+}
+
+const store = new Store({
+  cwd: verboDir,
+  name: 'config'
+});
 
 app.name = 'Verbo Typing Intelligence'
 app.setAppUserModelId('com.verbo.typingintelligence')
@@ -89,6 +99,55 @@ let suggestionHistory: any[] = []
 let activeContextStr: string = '' // Context at the time suggestion was generated
 let tray: Tray | null = null; // Prevent garbage collection
 
+function updateTrayMenu() {
+  if (!tray) return;
+  const isEnabled = store.get('processingEnabled', false) as boolean;
+  const contextMenu = Menu.buildFromTemplate([
+    { 
+      label: 'Predictive Text Enabled',
+      type: 'checkbox',
+      checked: isEnabled,
+      click: (menuItem) => {
+        const currentApiKey = store.get('apiKey') as string;
+        const currentModel = store.get('model') as string;
+
+        if (menuItem.checked && (!currentApiKey || !currentApiKey.trim())) {
+          menuItem.checked = false;
+          updateTrayMenu();
+          return;
+        }
+
+        const newEnabled = menuItem.checked;
+        store.set('processingEnabled', newEnabled);
+        
+        const shouldRun = Boolean(newEnabled && currentApiKey && currentModel);
+        keyHook.setEnabled(shouldRun);
+        
+        // Notify React frontend
+        win?.webContents.send('config-updated', {
+          apiKey: currentApiKey,
+          model: currentModel,
+          processingEnabled: newEnabled,
+          startOnStartup: store.get('startOnStartup', true)
+        });
+      }
+    },
+    { type: 'separator' },
+    { 
+      label: 'Configurations', 
+      icon: path.join(process.env.VITE_PUBLIC, 'icons/png/16x16.png'),
+      click: () => win?.show() 
+    },
+    { type: 'separator' },
+    { 
+      label: 'Quit Verbo', 
+      icon: path.join(process.env.VITE_PUBLIC, 'icons/png/16x16.png'),
+      click: () => { app.quit() } 
+    }
+  ]);
+  tray.setContextMenu(contextMenu);
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 400,
@@ -98,6 +157,7 @@ function createWindow() {
     maximizable: false,
     skipTaskbar: false,
     alwaysOnTop: false,
+    show: false,
     icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
@@ -189,38 +249,35 @@ app.whenReady().then(() => {
 
   // Start global key hook
   keyHook.start()
-  const processingEnabled = store.get('processingEnabled', true) as boolean;
+  const processingEnabled = store.get('processingEnabled', false) as boolean;
   const initialApiKey = store.get('apiKey') as string;
-  const initialModel = store.get('model') as string;
+  const initialModel = store.get('model') as string || 'gemini-2.5-flash-lite';
   keyHook.setEnabled(processingEnabled && !!initialApiKey && !!initialModel);
 
   // Set up Tray
   let trayIconPath = iconPath;
   try {
     tray = new Tray(trayIconPath);
-    const contextMenu = Menu.buildFromTemplate([
-      { 
-        label: 'Configurations', 
-        icon: path.join(process.env.VITE_PUBLIC, 'icons/png/16x16.png'),
-        click: () => win?.show() 
-      },
-      { type: 'separator' },
-      { 
-        label: 'Quit Verbo', 
-        icon: path.join(process.env.VITE_PUBLIC, 'icons/png/16x16.png'),
-        click: () => { app.quit() } 
-      }
-    ])
+    updateTrayMenu();
     tray.setToolTip('Verbo Typing Intelligence')
-    tray.setContextMenu(contextMenu)
     tray.on('click', () => {
-      tray?.popUpContextMenu();
+      if (win?.isVisible()) {
+        win.hide()
+      } else {
+        win?.show()
+        win?.focus()
+      }
     })
   } catch (err) {
     console.error('[Main] Failed to initialize Tray icon:', err);
   }
 
   keyHook.on('typing-paused', async () => {
+    const isEnabled = store.get('processingEnabled', true) as boolean;
+    if (!isEnabled) {
+      return;
+    }
+
     console.log('[Main] Received typing-paused event');
     const context = await uia.getTextContext()
     
@@ -243,6 +300,12 @@ app.whenReady().then(() => {
       return;
     }
 
+    const contextLength = context.fullText.length;
+    if (contextLength < 3) {
+      console.log(`[Main] Context length (${contextLength}) is less than 3 characters. Skipping AI request.`);
+      return;
+    }
+
     console.log('[Main] Requesting AI suggestions...');
     
     // Cancel any pending request
@@ -254,7 +317,7 @@ app.whenReady().then(() => {
     
     const config = {
       apiKey: store.get('apiKey') as string,
-      model: store.get('model') as string || 'gemini-3.1-flash-lite-preview'
+      model: store.get('model') as string || 'gemini-2.5-flash-lite'
     };
 
     if (!config.apiKey) {
@@ -430,17 +493,18 @@ app.whenReady().then(() => {
     // Evaluate if hook should be enabled
     const currentApiKey = store.get('apiKey') as string;
     const currentModel = store.get('model') as string;
-    const currentEnabled = store.get('processingEnabled', true) as boolean;
+    const currentEnabled = store.get('processingEnabled', false) as boolean;
     const shouldRun = Boolean(currentEnabled && currentApiKey && currentModel);
     keyHook.setEnabled(shouldRun);
 
     console.log('[Main] Config saved:', { model, shouldRun })
+    updateTrayMenu()
   })
 
   ipcMain.handle('get-config', () => ({
     apiKey: store.get('apiKey'),
-    model: store.get('model') || 'gemini-3.1-flash-lite-preview',
-    processingEnabled: store.get('processingEnabled', true),
+    model: store.get('model') || 'gemini-2.5-flash-lite',
+    processingEnabled: store.get('processingEnabled', false),
     startOnStartup: store.get('startOnStartup', true)
   }))
 })

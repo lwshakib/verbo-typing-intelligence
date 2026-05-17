@@ -4,13 +4,32 @@ import './App.css'
 export default function App() {
   const [suggestion, setSuggestion] = useState('')
   const [coords, setCoords] = useState({ top: 0, left: 0 })
+  const [isEnabled, setIsEnabled] = useState(false)
   const activeElRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLElement | null>(null)
   const debounceTimerRef = useRef<any>(null)
   const DEBOUNCE_MS = 500
 
   useEffect(() => {
+    chrome.storage.local.get(['enabled'], (result) => {
+      setIsEnabled(result.enabled !== undefined ? !!result.enabled : false)
+    })
+
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => {
+      if (areaName === 'local' && changes.enabled !== undefined) {
+        setIsEnabled(!!changes.enabled.newValue)
+      }
+    }
+    chrome.storage.onChanged.addListener(handleStorageChange)
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange)
+    }
+  }, [])
+
+  useEffect(() => {
     // Intercept input changes
     const handleInput = (e: Event) => {
+      if (!isEnabled) return
       const target = e.target as HTMLElement
       if (!isTargetable(target)) return
 
@@ -29,6 +48,7 @@ export default function App() {
 
     // Intercept keys for Tab and Esc
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isEnabled) return
       if (!suggestion || !activeElRef.current) return
 
       if (e.key === 'Tab') {
@@ -80,7 +100,7 @@ export default function App() {
       window.removeEventListener('scroll', handleScrollOrResize, true)
       window.removeEventListener('resize', handleScrollOrResize)
     }
-  }, [suggestion])
+  }, [suggestion, isEnabled])
 
   // Reposition suggestion when typing/focus triggers it
   useEffect(() => {
@@ -91,7 +111,7 @@ export default function App() {
 
   const requestSuggestion = (text: string) => {
     chrome.runtime.sendMessage({ action: 'getAISuggestion', text }, (response) => {
-      if (document.activeElement !== activeElRef.current) return
+      if (!activeElRef.current) return
 
       if (response && response.suggestion && response.suggestion.trim().length > 0) {
         setSuggestion(response.suggestion)

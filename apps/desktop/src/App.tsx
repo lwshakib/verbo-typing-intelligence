@@ -4,8 +4,8 @@ import './App.css'
 
 function App() {
   const [apiKey, setApiKey] = useState('')
-  const [model, setModel] = useState('gemini-3.1-flash-lite-preview')
-  const [processingEnabled, setProcessingEnabled] = useState(true)
+  const [model, setModel] = useState('gemini-2.5-flash-lite')
+  const [processingEnabled, setProcessingEnabled] = useState(false)
   const [startOnStartup, setStartOnStartup] = useState(true)
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
@@ -17,15 +17,32 @@ function App() {
       if (config.processingEnabled !== undefined) setProcessingEnabled(config.processingEnabled)
       if (config.startOnStartup !== undefined) setStartOnStartup(config.startOnStartup)
     })
+
+    const handleUpdate = (_event: any, config: any) => {
+      if (config.apiKey !== undefined) setApiKey(config.apiKey)
+      if (config.model !== undefined) setModel(config.model)
+      if (config.processingEnabled !== undefined) setProcessingEnabled(config.processingEnabled)
+      if (config.startOnStartup !== undefined) setStartOnStartup(config.startOnStartup)
+    }
+
+    (window as any).electron.on('config-updated', handleUpdate)
+
+    return () => {
+      (window as any).electron.off('config-updated', handleUpdate)
+    }
   }, [])
 
   const handleSave = () => {
     setStatus('saving')
     try {
-      (window as any).electron.saveConfig({ 
+      const finalEnabled = apiKey.trim() ? processingEnabled : false
+      if (!apiKey.trim() && processingEnabled) {
+        setProcessingEnabled(false)
+      }
+      ;(window as any).electron.saveConfig({ 
         apiKey, 
         model,
-        processingEnabled,
+        processingEnabled: finalEnabled,
         startOnStartup
       })
       setTimeout(() => setStatus('saved'), 500)
@@ -86,7 +103,20 @@ function App() {
               <input 
                 type="checkbox" 
                 checked={processingEnabled} 
-                onChange={(e) => setProcessingEnabled(e.target.checked)} 
+                onChange={(e) => {
+                  const val = e.target.checked
+                  if (val && !apiKey.trim()) {
+                    alert("A Gemini API Key is required to enable typing predictions!")
+                    return
+                  }
+                  setProcessingEnabled(val)
+                  ;(window as any).electron.saveConfig({ 
+                    apiKey, 
+                    model,
+                    processingEnabled: val,
+                    startOnStartup
+                  })
+                }} 
               />
               <span className="slider"></span>
             </label>
@@ -101,7 +131,16 @@ function App() {
               <input 
                 type="checkbox" 
                 checked={startOnStartup} 
-                onChange={(e) => setStartOnStartup(e.target.checked)} 
+                onChange={(e) => {
+                  const val = e.target.checked
+                  setStartOnStartup(val)
+                  ;(window as any).electron.saveConfig({ 
+                    apiKey, 
+                    model,
+                    processingEnabled,
+                    startOnStartup: val
+                  })
+                }} 
               />
               <span className="slider"></span>
             </label>

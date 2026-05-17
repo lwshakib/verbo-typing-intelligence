@@ -1,5 +1,8 @@
 {
   "name": "chrome-extension",
+  "displayName": "Verbo Typing Intelligence",
+  "displayDescription": "Predictive inline typing assistant powered by Google Gemini AI.",
+  "description": "Predictive inline typing assistant powered by Google Gemini AI.",
   "type": "module",
   "version": "1.0.0",
   "private": true,

@@ -3,14 +3,24 @@ import './Overlay.css';
 
 export default function Overlay() {
   const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    let hideTimer: NodeJS.Timeout | null = null;
+
     const handleShowSuggestion = (_event: any, newSuggestion: string) => {
+      if (hideTimer) clearTimeout(hideTimer);
       setSuggestion(newSuggestion);
+      requestAnimationFrame(() => {
+        setVisible(true);
+      });
     };
 
     const handleHideSuggestion = () => {
-      setSuggestion(null);
+      setVisible(false);
+      hideTimer = setTimeout(() => {
+        setSuggestion(null);
+      }, 150); // Matches transition duration
     };
 
     const api = (window as any).electron;
@@ -20,6 +30,7 @@ export default function Overlay() {
     }
 
     return () => {
+      if (hideTimer) clearTimeout(hideTimer);
       if (api?.off) {
         api.off('show-suggestion', handleShowSuggestion);
         api.off('hide-suggestion', handleHideSuggestion);
@@ -27,11 +38,11 @@ export default function Overlay() {
     };
   }, []);
 
-  if (!suggestion) return null;
-
   return (
     <div className="overlay-container">
-      <span className="suggestion">{suggestion}</span>
+      <span className={`suggestion ${visible && suggestion ? 'visible' : ''}`}>
+        {suggestion || ''}
+      </span>
     </div>
   );
 }

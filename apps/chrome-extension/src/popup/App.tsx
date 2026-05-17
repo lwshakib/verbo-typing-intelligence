@@ -2,23 +2,37 @@ import { useEffect, useState } from 'react'
 import './App.css'
 
 export default function App() {
-  const [enabled, setEnabled] = useState(true)
+  const [enabled, setEnabled] = useState(false)
   const [apiKey, setApiKey] = useState('')
-  const [model, setModel] = useState('gemini-2.5-flash')
+  const [model, setModel] = useState('gemini-2.5-flash-lite')
   const [showPassword, setShowPassword] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [alertMessage, setAlertMessage] = useState('')
 
   // Load configuration from local storage
   useEffect(() => {
     chrome.storage.local.get(['enabled', 'apiKey', 'model'], (result) => {
-      if (result.enabled !== undefined && result.enabled !== null) setEnabled(!!result.enabled)
+      setEnabled(result.enabled !== undefined && result.enabled !== null ? !!result.enabled : false)
       if (result.apiKey !== undefined && result.apiKey !== null) setApiKey(String(result.apiKey))
-      if (result.model !== undefined && result.model !== null) setModel(String(result.model))
+      setModel(result.model !== undefined && result.model !== null ? String(result.model) : 'gemini-2.5-flash-lite')
     })
   }, [])
 
+  const handleToggleChange = (newVal: boolean) => {
+    if (newVal && !apiKey.trim()) {
+      setAlertMessage('Gemini API key is required to enable typing intelligence!')
+      setTimeout(() => setAlertMessage(''), 4000)
+      return
+    }
+    setEnabled(newVal)
+  }
+
   const handleSave = () => {
-    chrome.storage.local.set({ enabled, apiKey, model }, () => {
+    const finalEnabled = apiKey.trim() ? enabled : false
+    if (!apiKey.trim() && enabled) {
+      setEnabled(false)
+    }
+    chrome.storage.local.set({ enabled: finalEnabled, apiKey, model }, () => {
       setSaved(true)
       setTimeout(() => setSaved(false), 1500)
     })
@@ -30,7 +44,7 @@ export default function App() {
       <header className="header">
         <div className="logo-wrapper">
           <svg className="logo-icon" width="22" height="22" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <g fill="#818cf8">
+            <g fill="#4f46e5">
               <path d="m35.8177 36.8043c-.5005 1.0368-1.5503 1.6957-2.7016 1.6957h-16.3076c-2.2193 0-3.6703-2.3261-2.6944-4.3193l11.2624-23c.5037-1.0286 1.5491-1.6807 2.6944-1.6807h16.1486c2.212 0 3.6633 2.3122 2.7017 4.3042z" />
               <path d="m6.87054 26.7399c1.05114 2.3025 4.30556 2.3487 5.42166.077l6.3838-12.9941c.9793-1.9934-.4716-4.3228-2.6926-4.3228h-12.31585c-2.18399 0-3.6360556 2.2591-2.729061 4.2459z" opacity=".5" />
             </g>
@@ -41,6 +55,18 @@ export default function App() {
           {enabled ? 'Active' : 'Disabled'}
         </div>
       </header>
+
+      {/* Inline Warning Alert */}
+      {alertMessage && (
+        <div className="alert-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          {alertMessage}
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="content">
@@ -53,7 +79,7 @@ export default function App() {
             <input 
               type="checkbox" 
               checked={enabled} 
-              onChange={(e) => setEnabled(e.target.checked)} 
+              onChange={(e) => handleToggleChange(e.target.checked)} 
             />
             <span className="slider"></span>
           </label>

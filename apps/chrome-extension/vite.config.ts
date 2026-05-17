@@ -15,9 +15,15 @@ export default defineConfig({
   plugins: [
     react(),
     crx({ manifest }),
-    zip({ outDir: 'release', outFileName: `crx-${name}-${version}.zip` }),
+    zip({ outDir: 'release', outFileName: `${name}-${version}.zip` }),
   ],
   server: {
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      host: 'localhost',
+      protocol: 'ws',
+    },
     cors: {
       origin: [
         /chrome-extension:\/\//,
