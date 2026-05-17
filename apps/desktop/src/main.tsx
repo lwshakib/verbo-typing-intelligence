@@ -1,15 +1,26 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import App from './App.tsx'
+import Overlay from './Overlay.tsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    {/* @ts-ignore */}
+    <HashRouter>
+      {/* @ts-ignore */}
+      <Routes>
+        {/* @ts-ignore */}
+        <Route path="/" element={<App />} />
+        {/* @ts-ignore */}
+        <Route path="/overlay" element={<Overlay />} />
+      </Routes>
+    </HashRouter>
   </React.StrictMode>,
 )
 
-// Use contextBridge
-window.ipcRenderer.on('main-process-message', (_event, message) => {
+// Use contextBridge (avoid relying on a global ipcRenderer)
+;(window as any).electron?.on?.('main-process-message', (_event: any, message: any) => {
   console.log(message)
 })
