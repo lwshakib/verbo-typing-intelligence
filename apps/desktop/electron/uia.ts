@@ -16,7 +16,7 @@ export interface TextContext {
 export class UIAutomation {
   private bridge: ChildProcess | null = null;
   private reader: readline.Interface | null = null;
-  private pendingRequest: ((data: any) => void) | null = null;
+  private pendingRequest: ((data: Record<string, unknown> | boolean) => void) | null = null;
   private scriptPath: string = path.join(os.tmpdir(), 'verbo-uia-bridge.ps1');
 
   private createBridgeScript(): void {
@@ -120,7 +120,6 @@ try {
     });
 
     this.reader.on('line', (line) => {
-      // console.log('[UIA Bridge Output]:', line);
       if (this.pendingRequest) {
         if (line === 'OK') {
           this.pendingRequest(true);
@@ -160,15 +159,17 @@ try {
         }
       }, 2000);
 
-      this.pendingRequest = (data) => {
+      this.pendingRequest = (raw) => {
         clearTimeout(timeout);
+        const data = raw as Record<string, unknown>;
+        const caret = data.caret as Record<string, number> | undefined;
         resolve({
-          fullText: data.fullText || '',
-          cursorPosition: (data.fullText || '').length,
+          fullText: (data.fullText as string) || '',
+          cursorPosition: ((data.fullText as string) || '').length,
           selectedText: '',
-          controlType: data.controlType || 'unknown',
-          processName: data.className || 'unknown',
-          caretRect: data.caret && data.caret.h > 0 ? { x: data.caret.x, y: data.caret.y, width: 0, height: data.caret.h } : undefined
+          controlType: (data.controlType as string) || 'unknown',
+          processName: (data.className as string) || 'unknown',
+          caretRect: caret && caret.h > 0 ? { x: caret.x, y: caret.y, width: 0, height: caret.h } : undefined
         });
       };
 
@@ -207,7 +208,9 @@ try {
     if (fs.existsSync(this.scriptPath)) {
       try {
         fs.unlinkSync(this.scriptPath);
-      } catch {}
+      } catch {
+        // Ignore cleanup errors
+      }
     }
   }
 }

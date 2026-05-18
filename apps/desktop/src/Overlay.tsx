@@ -8,9 +8,11 @@ export default function Overlay() {
   useEffect(() => {
     let hideTimer: NodeJS.Timeout | null = null;
 
-    const handleShowSuggestion = (_event: any, newSuggestion: string) => {
+    const handleShowSuggestion = (_event: unknown, newSuggestion: unknown) => {
       if (hideTimer) clearTimeout(hideTimer);
-      setSuggestion(newSuggestion);
+      if (typeof newSuggestion === 'string') {
+        setSuggestion(newSuggestion);
+      }
       requestAnimationFrame(() => {
         setVisible(true);
       });
@@ -23,7 +25,7 @@ export default function Overlay() {
       }, 150); // Matches transition duration
     };
 
-    const api = (window as any).electron;
+    const api = window.electron;
     if (api?.on) {
       api.on('show-suggestion', handleShowSuggestion);
       api.on('hide-suggestion', handleHideSuggestion);
@@ -46,4 +48,3 @@ export default function Overlay() {
     </div>
   );
 }
-

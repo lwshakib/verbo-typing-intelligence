@@ -8,14 +8,14 @@ contextBridge.exposeInMainWorld('electron', {
   close: () => ipcRenderer.send('window-close'),
 
   // Config Management
-  saveConfig: (config: { apiKey: string, model: string, processingEnabled?: boolean }) => ipcRenderer.send('save-config', config),
+  saveConfig: (config: { apiKey: string, model: string, processingEnabled?: boolean, startOnStartup?: boolean }) => ipcRenderer.send('save-config', config),
   getConfig: () => ipcRenderer.invoke('get-config'),
 
   // IPC communication for data
-  on: (channel: string, listener: (event: any, ...args: any[]) => void) => 
+  on: (channel: string, listener: (event: unknown, ...args: unknown[]) => void) => 
     ipcRenderer.on(channel, listener),
-  off: (channel: string, listener: (event: any, ...args: any[]) => void) => 
+  off: (channel: string, listener: (event: unknown, ...args: unknown[]) => void) => 
     ipcRenderer.off(channel, listener),
-  send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, ...args),
-  invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args),
+  send: (channel: string, ...args: unknown[]) => ipcRenderer.send(channel, ...args),
+  invoke: (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args),
 })

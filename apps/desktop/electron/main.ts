@@ -8,7 +8,7 @@ import os from 'os'
 import fs from 'fs'
 import { keyHook } from './hook'
 import { uia } from './uia'
-import { getAISuggestions } from './ai'
+import { getAISuggestions, AIHistoryItem } from './ai'
 
 const verboDir = path.join(os.homedir(), '.verbo');
 if (!fs.existsSync(verboDir)) {
@@ -95,7 +95,7 @@ let lastSuggestion: string = ''
 let hideTimeout: NodeJS.Timeout | null = null
 let lastProcessName: string = ''
 let currentAbortController: AbortController | null = null
-let suggestionHistory: any[] = []
+const suggestionHistory: AIHistoryItem[] = []
 let activeContextStr: string = '' // Context at the time suggestion was generated
 let tray: Tray | null = null; // Prevent garbage collection
 
@@ -255,7 +255,7 @@ app.whenReady().then(() => {
   keyHook.setEnabled(processingEnabled && !!initialApiKey && !!initialModel);
 
   // Set up Tray
-  let trayIconPath = iconPath;
+  const trayIconPath = iconPath;
   try {
     tray = new Tray(trayIconPath);
     updateTrayMenu();
@@ -329,7 +329,6 @@ app.whenReady().then(() => {
       activeContextStr, 
       currentAbortController.signal,
       suggestionHistory,
-      '',
       config
     )
     
@@ -384,7 +383,7 @@ app.whenReady().then(() => {
     }
   })
 
-  keyHook.on('keypress', (e: any) => {
+  keyHook.on('keypress', (e: { keycode?: number }) => {
     // Hide overlay immediately on any key except Tab (15) or Esc (1)
     if (e.keycode !== 15 && e.keycode !== 1 && lastSuggestion) {
       console.log('[Main] Typing resumed - hiding ghost text');

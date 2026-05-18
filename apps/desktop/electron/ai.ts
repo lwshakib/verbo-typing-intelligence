@@ -14,7 +14,6 @@ export async function getAISuggestions(
   text: string, 
   signal?: AbortSignal, 
   history: AIHistoryItem[] = [],
-  _context: string = '',
   config?: { 
     apiKey: string, 
     model: string
@@ -64,8 +63,8 @@ Strict Rules:
     
     console.log('[AI] Suggestion:', cleanSuggestion);
     return { suggestion: cleanSuggestion };
-  } catch (err: any) {
-    if (err.name === 'AbortError' || signal?.aborted) {
+  } catch (err: unknown) {
+    if (signal?.aborted) {
       return { suggestion: '' };
     }
     console.error('[AI Service] SDK Error:', err);

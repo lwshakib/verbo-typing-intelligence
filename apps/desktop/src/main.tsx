@@ -7,20 +7,15 @@ import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {/* @ts-ignore */}
     <HashRouter>
-      {/* @ts-ignore */}
       <Routes>
-        {/* @ts-ignore */}
         <Route path="/" element={<App />} />
-        {/* @ts-ignore */}
         <Route path="/overlay" element={<Overlay />} />
       </Routes>
     </HashRouter>
   </React.StrictMode>,
 )
 
-// Use contextBridge (avoid relying on a global ipcRenderer)
-;(window as any).electron?.on?.('main-process-message', (_event: any, message: any) => {
+window.electron?.on?.('main-process-message', (_event: unknown, message: unknown) => {
   console.log(message)
 })

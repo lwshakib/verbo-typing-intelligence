@@ -6,7 +6,6 @@ export class KeyHook extends EventEmitter {
   private debouncedTimer: NodeJS.Timeout | null = null;
   private debounceMs = 1000; // 1 second as requested by user
 
-
   constructor() {
     super();
   }
@@ -20,12 +19,12 @@ export class KeyHook extends EventEmitter {
   }
 
   start() {
-    uIOhook.on('keydown', (e: any) => {
+    uIOhook.on('keydown', (e: Record<string, unknown>) => {
       if (!this.enabled) return;
       this.handleKeyDown(e);
     });
 
-    uIOhook.on('mousedown', (e: any) => {
+    uIOhook.on('mousedown', (e: Record<string, unknown>) => {
       if (!this.enabled) return;
       this.emit('mousedown', e);
     });
@@ -38,8 +37,7 @@ export class KeyHook extends EventEmitter {
     uIOhook.stop();
   }
 
-
-  private handleKeyDown(e: any) {
+  private handleKeyDown(e: Record<string, unknown>) {
     // Emit event immediately for auto-hiding
     this.emit('keypress', e);
 

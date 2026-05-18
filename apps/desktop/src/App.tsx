@@ -11,24 +11,25 @@ function App() {
 
   useEffect(() => {
     // Load initial config
-    (window as any).electron.getConfig().then((config: any) => {
-      if (config.apiKey) setApiKey(config.apiKey)
-      if (config.model) setModel(config.model)
-      if (config.processingEnabled !== undefined) setProcessingEnabled(config.processingEnabled)
-      if (config.startOnStartup !== undefined) setStartOnStartup(config.startOnStartup)
+    window.electron?.getConfig().then((config) => {
+      if (config.apiKey && typeof config.apiKey === 'string') setApiKey(config.apiKey)
+      if (config.model && typeof config.model === 'string') setModel(config.model)
+      if (config.processingEnabled !== undefined) setProcessingEnabled(Boolean(config.processingEnabled))
+      if (config.startOnStartup !== undefined) setStartOnStartup(Boolean(config.startOnStartup))
     })
 
-    const handleUpdate = (_event: any, config: any) => {
-      if (config.apiKey !== undefined) setApiKey(config.apiKey)
-      if (config.model !== undefined) setModel(config.model)
-      if (config.processingEnabled !== undefined) setProcessingEnabled(config.processingEnabled)
-      if (config.startOnStartup !== undefined) setStartOnStartup(config.startOnStartup)
+    const handleUpdate = (_event: unknown, rawConfig: unknown) => {
+      const config = rawConfig as Record<string, unknown>;
+      if (config?.apiKey !== undefined && typeof config.apiKey === 'string') setApiKey(config.apiKey)
+      if (config?.model !== undefined && typeof config.model === 'string') setModel(config.model)
+      if (config?.processingEnabled !== undefined) setProcessingEnabled(Boolean(config.processingEnabled))
+      if (config?.startOnStartup !== undefined) setStartOnStartup(Boolean(config.startOnStartup))
     }
 
-    (window as any).electron.on('config-updated', handleUpdate)
+    window.electron?.on('config-updated', handleUpdate)
 
     return () => {
-      (window as any).electron.off('config-updated', handleUpdate)
+      window.electron?.off('config-updated', handleUpdate)
     }
   }, [])
 
@@ -39,7 +40,7 @@ function App() {
       if (!apiKey.trim() && processingEnabled) {
         setProcessingEnabled(false)
       }
-      ;(window as any).electron.saveConfig({ 
+      window.electron?.saveConfig({ 
         apiKey, 
         model,
         processingEnabled: finalEnabled,
@@ -48,6 +49,7 @@ function App() {
       setTimeout(() => setStatus('saved'), 500)
       setTimeout(() => setStatus('idle'), 3000)
     } catch (err) {
+      console.error(err)
       setStatus('error')
     }
   }
@@ -110,7 +112,7 @@ function App() {
                     return
                   }
                   setProcessingEnabled(val)
-                  ;(window as any).electron.saveConfig({ 
+                  window.electron?.saveConfig({ 
                     apiKey, 
                     model,
                     processingEnabled: val,
@@ -134,7 +136,7 @@ function App() {
                 onChange={(e) => {
                   const val = e.target.checked
                   setStartOnStartup(val)
-                  ;(window as any).electron.saveConfig({ 
+                  window.electron?.saveConfig({ 
                     apiKey, 
                     model,
                     processingEnabled,
