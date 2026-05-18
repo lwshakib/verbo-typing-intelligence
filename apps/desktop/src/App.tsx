@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { Save } from "lucide-react"
+import Logo from "./components/Logo"
 import "./App.css"
 
 function App() {
@@ -69,6 +70,7 @@ function App() {
       <main className="content">
         <section className="settings-card">
           <div className="card-header">
+            <Logo size={28} color="var(--accent-color)" />
             <h2>Configuration</h2>
           </div>
 
