@@ -9,8 +9,6 @@
   <img src="./apps/web/public/demos/chrome_extension.png" alt="Verbo Chrome Extension Demo" width="38%" style="max-width: 280px; display: inline-block; margin-left: 1%; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px;" />
 </p>
 
-
-
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#architecture">Architecture</a> •
@@ -33,12 +31,14 @@ With a single press of `TAB`, suggestions are instantly injected into your activ
 ## ⚡ Key Features
 
 ### 🖥️ Windows Desktop Assistant (`apps/desktop`)
+
 - **System-Wide Compatibility:** Works seamlessly across any Windows desktop application (Word, Notepad, VS Code, Discord, Slack, Outlook).
 - **Precise Caret Tracking:** Integrates robust Windows UI Automation (UIA) COM bridges to track real-time cursor screen coordinates and text context.
 - **Floating Ghost Text Overlay:** Displays a frictionless, transparent overlay showing AI predictions directly ahead of your typing cursor.
 - **Low-Latency Global Key Hook:** Intercepts typing pauses to trigger predictions and handles `TAB` acceptance or `ESC` dismissal without stealing focus.
 
 ### 🌐 Chrome Extension Assistant (`apps/chrome-extension`)
+
 - **Universal Browser Support:** Automatically attaches to standard `<input>`, `<textarea>`, and modern `contenteditable` editors across web pages.
 - **Elegant Inline Suggestion Pills:** Renders beautiful, non-intrusive floating suggestion badges beneath the active input field.
 - **Smart Formatting & Spacing:** Cleans up generated continuations to maintain correct grammar and natural spacing.
@@ -79,12 +79,14 @@ graph TD
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - **Node.js**: v20 or higher
 - **Package Manager**: `pnpm` (v9.15.9+)
 - **OS**: Windows (required for desktop app development due to Windows UIA & native hooks)
 - **C++ Build Tools**: Visual Studio C++ Build Tools & Python (for compiling `uiohook-napi` and `ffi-napi`)
 
 ### 1. Clone & Setup
+
 Fork the repository on GitHub, then clone your fork locally:
 
 ```bash
@@ -96,6 +98,7 @@ git remote add upstream https://github.com/lwshakib/verbo-typing-intelligence.gi
 ```
 
 ### 2. Install Dependencies
+
 Run `pnpm install` from the root directory to install all monorepo packages and build native modules:
 
 ```bash
@@ -103,6 +106,7 @@ pnpm install
 ```
 
 ### 3. Configure API Key
+
 When launching the Desktop App or Chrome Extension for the first time, open the settings configuration panel and input your **Google Gemini API Key**.
 
 ---
@@ -116,6 +120,7 @@ pnpm dev
 ```
 
 ### Running Specific Applications
+
 You can filter tasks using Turborepo flags:
 
 ```bash
@@ -144,6 +149,7 @@ pnpm turbo run release --filter=desktop
 ```
 
 Output binaries will be generated inside:
+
 - Desktop Installer: `apps/desktop/release/`
 - Chrome Extension Zip: `apps/chrome-extension/release/`
 
@@ -154,6 +160,7 @@ Output binaries will be generated inside:
 We welcome contributions of all sizes! Please read our [Contributing Guide](CONTRIBUTING.md) to understand our branching conventions, commit standards, and pull request workflow.
 
 Before submitting a Pull Request, please ensure all quality checks pass:
+
 ```bash
 # Check formatting
 pnpm format:check

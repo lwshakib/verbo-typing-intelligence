@@ -1,52 +1,55 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, screen } from 'electron'
-import pkg from 'electron-updater'
+import { app, BrowserWindow, ipcMain, Tray, Menu, screen } from "electron"
+import pkg from "electron-updater"
 const { autoUpdater } = pkg
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
-import Store from 'electron-store'
-import os from 'os'
-import fs from 'fs'
-import { keyHook } from './hook'
-import { uia } from './uia'
-import { getAISuggestions, AIHistoryItem } from './ai'
+import { fileURLToPath } from "node:url"
+import path from "node:path"
+import Store from "electron-store"
+import os from "os"
+import fs from "fs"
+import { keyHook } from "./hook"
+import { uia } from "./uia"
+import { getAISuggestions, AIHistoryItem } from "./ai"
 
-const verboDir = path.join(os.homedir(), '.verbo');
+const verboDir = path.join(os.homedir(), ".verbo")
 if (!fs.existsSync(verboDir)) {
-  fs.mkdirSync(verboDir, { recursive: true });
+  fs.mkdirSync(verboDir, { recursive: true })
 }
 
 const store = new Store({
   cwd: verboDir,
-  name: 'config'
-});
+  name: "config",
+})
 
-app.name = 'Verbo Typing Intelligence'
-app.setAppUserModelId('com.verbo.typingintelligence')
+app.name = "Verbo Typing Intelligence"
+app.setAppUserModelId("com.verbo.typingintelligence")
 
 function setupAutoUpdater() {
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.allowPrerelease = false
 
-  autoUpdater.on('update-available', (info) => {
-    console.log('[Updater] Update available:', info.version)
+  autoUpdater.on("update-available", (info) => {
+    console.log("[Updater] Update available:", info.version)
     if (win) {
-      win.webContents.send('update:available', info.version)
+      win.webContents.send("update:available", info.version)
     }
   })
 
-  autoUpdater.on('update-downloaded', (info) => {
-    console.log('[Updater] Update downloaded:', info.version)
+  autoUpdater.on("update-downloaded", (info) => {
+    console.log("[Updater] Update downloaded:", info.version)
   })
 
-  autoUpdater.on('error', (err) => {
-    console.error('[Updater] Error in auto-updater:', err)
+  autoUpdater.on("error", (err) => {
+    console.error("[Updater] Error in auto-updater:", err)
   })
 
   // Check for updates every 24 hours
-  setInterval(() => {
-    autoUpdater.checkForUpdatesAndNotify()
-  }, 1000 * 60 * 60 * 24)
+  setInterval(
+    () => {
+      autoUpdater.checkForUpdatesAndNotify()
+    },
+    1000 * 60 * 60 * 24
+  )
 
   // Initial check
   autoUpdater.checkForUpdatesAndNotify()
@@ -63,89 +66,93 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // │ │ ├── main.js
 // │ │ └── preload.mjs
 // │
-process.env.APP_ROOT = path.join(__dirname, '..')
+process.env.APP_ROOT = path.join(__dirname, "..")
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
-export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
-export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
+export const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"]
+export const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron")
+export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist")
 
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
+process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
+  ? path.join(process.env.APP_ROOT, "public")
+  : RENDERER_DIST
 
 // Platform-specific icon paths
 const getIconPath = (): string => {
-  const platform = process.platform;
-  const basePath = process.env.VITE_PUBLIC ?? process.env.APP_ROOT;
+  const platform = process.platform
+  const basePath = process.env.VITE_PUBLIC ?? process.env.APP_ROOT
 
   switch (platform) {
-    case 'win32':
-      return path.join(basePath, 'icons', 'win', 'icon.ico');
-    case 'darwin':
-      return path.join(basePath, 'icons', 'mac', 'icon.icns');
+    case "win32":
+      return path.join(basePath, "icons", "win", "icon.ico")
+    case "darwin":
+      return path.join(basePath, "icons", "mac", "icon.icns")
     default:
-      return path.join(basePath, 'icons', 'png', '256x256.png');
+      return path.join(basePath, "icons", "png", "256x256.png")
   }
-};
+}
 
-const iconPath = getIconPath();
+const iconPath = getIconPath()
 
 let win: BrowserWindow | null = null
 let overlayWin: BrowserWindow | null = null
-let lastSuggestion: string = ''
+let lastSuggestion: string = ""
 let hideTimeout: NodeJS.Timeout | null = null
-let lastProcessName: string = ''
+let lastProcessName: string = ""
 let currentAbortController: AbortController | null = null
 const suggestionHistory: AIHistoryItem[] = []
-let activeContextStr: string = '' // Context at the time suggestion was generated
-let tray: Tray | null = null; // Prevent garbage collection
+let activeContextStr: string = "" // Context at the time suggestion was generated
+let tray: Tray | null = null // Prevent garbage collection
 
 function updateTrayMenu() {
-  if (!tray) return;
-  const isEnabled = store.get('processingEnabled', false) as boolean;
+  if (!tray) return
+  const isEnabled = store.get("processingEnabled", false) as boolean
   const contextMenu = Menu.buildFromTemplate([
-    { 
-      label: 'Predictive Text Enabled',
-      type: 'checkbox',
+    {
+      label: "Predictive Text Enabled",
+      type: "checkbox",
       checked: isEnabled,
       click: (menuItem) => {
-        const currentApiKey = store.get('apiKey') as string;
-        const currentModel = store.get('model') as string;
+        const currentApiKey = store.get("apiKey") as string
+        const currentModel = store.get("model") as string
 
         if (menuItem.checked && (!currentApiKey || !currentApiKey.trim())) {
-          menuItem.checked = false;
-          updateTrayMenu();
-          return;
+          menuItem.checked = false
+          updateTrayMenu()
+          return
         }
 
-        const newEnabled = menuItem.checked;
-        store.set('processingEnabled', newEnabled);
-        
-        const shouldRun = Boolean(newEnabled && currentApiKey && currentModel);
-        keyHook.setEnabled(shouldRun);
-        
+        const newEnabled = menuItem.checked
+        store.set("processingEnabled", newEnabled)
+
+        const shouldRun = Boolean(newEnabled && currentApiKey && currentModel)
+        keyHook.setEnabled(shouldRun)
+
         // Notify React frontend
-        win?.webContents.send('config-updated', {
+        win?.webContents.send("config-updated", {
           apiKey: currentApiKey,
           model: currentModel,
           processingEnabled: newEnabled,
-          startOnStartup: store.get('startOnStartup', true)
-        });
-      }
+          startOnStartup: store.get("startOnStartup", true),
+        })
+      },
     },
-    { type: 'separator' },
-    { 
-      label: 'Configurations', 
-      icon: path.join(process.env.VITE_PUBLIC, 'icons/png/16x16.png'),
-      click: () => win?.show() 
+    { type: "separator" },
+    {
+      label: "Configurations",
+      icon: path.join(process.env.VITE_PUBLIC, "icons/png/16x16.png"),
+      click: () => win?.show(),
     },
-    { type: 'separator' },
-    { 
-      label: 'Quit Verbo', 
-      icon: path.join(process.env.VITE_PUBLIC, 'icons/png/16x16.png'),
-      click: () => { app.quit() } 
-    }
-  ]);
-  tray.setContextMenu(contextMenu);
+    { type: "separator" },
+    {
+      label: "Quit Verbo",
+      icon: path.join(process.env.VITE_PUBLIC, "icons/png/16x16.png"),
+      click: () => {
+        app.quit()
+      },
+    },
+  ])
+  tray.setContextMenu(contextMenu)
 }
 
 function createWindow() {
@@ -160,19 +167,19 @@ function createWindow() {
     show: false,
     icon: iconPath,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: path.join(__dirname, "preload.mjs"),
     },
   })
 
   // Test active push message to Renderer-process.
-  win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', (new Date).toLocaleString())
+  win.webContents.on("did-finish-load", () => {
+    win?.webContents.send("main-process-message", new Date().toLocaleString())
   })
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
   } else {
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'))
+    win.loadFile(path.join(RENDERER_DIST, "index.html"))
   }
 }
 
@@ -189,30 +196,32 @@ function createOverlayWindow() {
     paintWhenInitiallyHidden: true,
     fullscreenable: false,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: path.join(__dirname, "preload.mjs"),
     },
   })
 
   overlayWin.setIgnoreMouseEvents(true, { forward: true })
   // Keep overlay above normal windows without stealing focus.
-  overlayWin.setAlwaysOnTop(true, 'screen-saver')
+  overlayWin.setAlwaysOnTop(true, "screen-saver")
 
   if (VITE_DEV_SERVER_URL) {
     overlayWin.loadURL(`${VITE_DEV_SERVER_URL}#/overlay`)
   } else {
-    overlayWin.loadURL(`file://${path.join(RENDERER_DIST, 'index.html')}#/overlay`)
+    overlayWin.loadURL(
+      `file://${path.join(RENDERER_DIST, "index.html")}#/overlay`
+    )
   }
 }
 
 // Quit when all windows are closed, except on macOS.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
     app.quit()
     win = null
   }
 })
 
-app.on('activate', () => {
+app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
@@ -221,26 +230,26 @@ app.on('activate', () => {
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null)
 
-  if (process.platform === 'win32') {
+  if (process.platform === "win32") {
     // Ensures proper taskbar grouping/icon behavior on Windows.
-    app.setAppUserModelId('com.verbo.typingintelligence')
+    app.setAppUserModelId("com.verbo.typingintelligence")
   }
 
   createWindow()
   createOverlayWindow()
 
   // Initialize startup item settings in production
-  const startOnStartup = store.get('startOnStartup', true) as boolean;
+  const startOnStartup = store.get("startOnStartup", true) as boolean
   if (app.isPackaged) {
     app.setLoginItemSettings({
       openAtLogin: startOnStartup,
-      path: app.getPath('exe'),
+      path: app.getPath("exe"),
     })
     setupAutoUpdater()
   } else {
     app.setLoginItemSettings({
       openAtLogin: false,
-      path: app.getPath('exe'),
+      path: app.getPath("exe"),
     })
   }
 
@@ -249,18 +258,18 @@ app.whenReady().then(() => {
 
   // Start global key hook
   keyHook.start()
-  const processingEnabled = store.get('processingEnabled', false) as boolean;
-  const initialApiKey = store.get('apiKey') as string;
-  const initialModel = store.get('model') as string || 'gemini-2.5-flash-lite';
-  keyHook.setEnabled(processingEnabled && !!initialApiKey && !!initialModel);
+  const processingEnabled = store.get("processingEnabled", false) as boolean
+  const initialApiKey = store.get("apiKey") as string
+  const initialModel = (store.get("model") as string) || "gemini-2.5-flash-lite"
+  keyHook.setEnabled(processingEnabled && !!initialApiKey && !!initialModel)
 
   // Set up Tray
-  const trayIconPath = iconPath;
+  const trayIconPath = iconPath
   try {
-    tray = new Tray(trayIconPath);
-    updateTrayMenu();
-    tray.setToolTip('Verbo Typing Intelligence')
-    tray.on('click', () => {
+    tray = new Tray(trayIconPath)
+    updateTrayMenu()
+    tray.setToolTip("Verbo Typing Intelligence")
+    tray.on("click", () => {
       if (win?.isVisible()) {
         win.hide()
       } else {
@@ -269,86 +278,88 @@ app.whenReady().then(() => {
       }
     })
   } catch (err) {
-    console.error('[Main] Failed to initialize Tray icon:', err);
+    console.error("[Main] Failed to initialize Tray icon:", err)
   }
 
-  keyHook.on('typing-paused', async () => {
-    const isEnabled = store.get('processingEnabled', true) as boolean;
+  keyHook.on("typing-paused", async () => {
+    const isEnabled = store.get("processingEnabled", true) as boolean
     if (!isEnabled) {
-      return;
+      return
     }
 
-    console.log('[Main] Received typing-paused event');
+    console.log("[Main] Received typing-paused event")
     const context = await uia.getTextContext()
-    
+
     // Auto-hide if focus changed or context is empty
-    const isFocusChanged = context.processName !== lastProcessName;
-    const isTextEmpty = !context.fullText;
+    const isFocusChanged = context.processName !== lastProcessName
+    const isTextEmpty = !context.fullText
 
     if ((isFocusChanged || isTextEmpty) && lastSuggestion) {
-      console.log('[Main] Focus changed or empty text - hiding suggestion');
-      lastSuggestion = ''
-      if (currentAbortController) currentAbortController.abort();
+      console.log("[Main] Focus changed or empty text - hiding suggestion")
+      lastSuggestion = ""
+      if (currentAbortController) currentAbortController.abort()
       overlayWin?.hide()
-      overlayWin?.webContents.send('hide-suggestion')
+      overlayWin?.webContents.send("hide-suggestion")
     }
-    
+
     lastProcessName = context.processName
 
     if (isTextEmpty) {
-      console.log('[Main] No text context found or field is empty');
-      return;
+      console.log("[Main] No text context found or field is empty")
+      return
     }
 
-    const contextLength = context.fullText.length;
+    const contextLength = context.fullText.length
     if (contextLength < 3) {
-      console.log(`[Main] Context length (${contextLength}) is less than 3 characters. Skipping AI request.`);
-      return;
+      console.log(
+        `[Main] Context length (${contextLength}) is less than 3 characters. Skipping AI request.`
+      )
+      return
     }
 
-    console.log('[Main] Requesting AI suggestions...');
-    
+    console.log("[Main] Requesting AI suggestions...")
+
     // Cancel any pending request
-    if (currentAbortController) currentAbortController.abort();
-    currentAbortController = new AbortController();
-    
+    if (currentAbortController) currentAbortController.abort()
+    currentAbortController = new AbortController()
+
     // Increased context window to 500 for better "broad" understanding
-    activeContextStr = context.fullText.slice(-500);
-    
+    activeContextStr = context.fullText.slice(-500)
+
     const config = {
-      apiKey: store.get('apiKey') as string,
-      model: store.get('model') as string || 'gemini-2.5-flash-lite'
-    };
+      apiKey: store.get("apiKey") as string,
+      model: (store.get("model") as string) || "gemini-2.5-flash-lite",
+    }
 
     if (!config.apiKey) {
-      console.log('[Main] No API key configured. Skipping AI request.');
-      return;
+      console.log("[Main] No API key configured. Skipping AI request.")
+      return
     }
 
     const { suggestion } = await getAISuggestions(
-      activeContextStr, 
+      activeContextStr,
       currentAbortController.signal,
       suggestionHistory,
       config
     )
-    
+
     if (!suggestion) {
-      console.log('[Main] No suggestion received from AI');
-      return;
+      console.log("[Main] No suggestion received from AI")
+      return
     }
 
-    console.log('[Main] Suggestion received:', suggestion);
+    console.log("[Main] Suggestion received:", suggestion)
     lastSuggestion = suggestion
 
     if (overlayWin) {
       // Clear existing timeout
-      if (hideTimeout) clearTimeout(hideTimeout);
-      
+      if (hideTimeout) clearTimeout(hideTimeout)
+
       // Ensure overlay stays on top (even after focus changes).
-      overlayWin.setAlwaysOnTop(true, 'screen-saver')
+      overlayWin.setAlwaysOnTop(true, "screen-saver")
 
       if (context.caretRect) {
-        console.log('[Main] Positioning ghost text at:', context.caretRect);
+        console.log("[Main] Positioning ghost text at:", context.caretRect)
         overlayWin.setBounds({
           x: Math.round(context.caretRect.x + 2),
           y: Math.round(context.caretRect.y),
@@ -357,7 +368,9 @@ app.whenReady().then(() => {
         })
       } else {
         // Fallback: show at top-center of the current display when caret position is unavailable.
-        const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+        const display = screen.getDisplayNearestPoint(
+          screen.getCursorScreenPoint()
+        )
         const workArea = display.workArea
         const width = 800
         const height = 100
@@ -369,146 +382,169 @@ app.whenReady().then(() => {
         })
       }
       overlayWin.showInactive()
-      overlayWin.webContents.send('show-suggestion', suggestion)
+      overlayWin.webContents.send("show-suggestion", suggestion)
 
       // Set auto-hide timeout (8 seconds)
       hideTimeout = setTimeout(() => {
         if (lastSuggestion) {
-          console.log('[Main] Idle timeout - hiding suggestion');
-          lastSuggestion = ''
+          console.log("[Main] Idle timeout - hiding suggestion")
+          lastSuggestion = ""
           overlayWin?.hide()
-          overlayWin?.webContents.send('hide-suggestion')
+          overlayWin?.webContents.send("hide-suggestion")
         }
-      }, 8000);
+      }, 8000)
     }
   })
 
-  keyHook.on('keypress', (e: { keycode?: number }) => {
+  keyHook.on("keypress", (e: { keycode?: number }) => {
     // Hide overlay immediately on any key except Tab (15) or Esc (1)
     if (e.keycode !== 15 && e.keycode !== 1 && lastSuggestion) {
-      console.log('[Main] Typing resumed - hiding ghost text');
-      
-      // Record implicit rejection (user typed over it)
-      suggestionHistory.push({ context: activeContextStr, suggestion: lastSuggestion, accepted: false });
-      if (suggestionHistory.length > 10) suggestionHistory.shift();
+      console.log("[Main] Typing resumed - hiding ghost text")
 
-      lastSuggestion = ''
-      if (hideTimeout) clearTimeout(hideTimeout);
+      // Record implicit rejection (user typed over it)
+      suggestionHistory.push({
+        context: activeContextStr,
+        suggestion: lastSuggestion,
+        accepted: false,
+      })
+      if (suggestionHistory.length > 10) suggestionHistory.shift()
+
+      lastSuggestion = ""
+      if (hideTimeout) clearTimeout(hideTimeout)
       if (currentAbortController) {
-        currentAbortController.abort();
-        currentAbortController = null;
+        currentAbortController.abort()
+        currentAbortController = null
       }
       overlayWin?.hide()
-      overlayWin?.webContents.send('hide-suggestion')
+      overlayWin?.webContents.send("hide-suggestion")
     }
   })
 
-  keyHook.on('tab-pressed', async () => {
-    console.log('[Main] Received tab-pressed event');
+  keyHook.on("tab-pressed", async () => {
+    console.log("[Main] Received tab-pressed event")
     if (lastSuggestion) {
       // Smart Spacing: Ensure there's a space if we're between two words and no space exists
-      const context = await uia.getTextContext();
-      let finalSuggestion = lastSuggestion;
-      
-      const lastChar = context.fullText?.slice(-1);
-      const firstCharSuggestion = lastSuggestion[0];
-      
+      const context = await uia.getTextContext()
+      let finalSuggestion = lastSuggestion
+
+      const lastChar = context.fullText?.slice(-1)
+      const firstCharSuggestion = lastSuggestion[0]
+
       // If last char is a letter/digit and first suggestion char is a letter/digit, and there's no space...
-      if (lastChar && firstCharSuggestion && 
-          /[a-zA-Z0-9]/.test(lastChar) && 
-          /[a-zA-Z0-9]/.test(firstCharSuggestion)) {
-        console.log('[Main] Smart Spacing: Adding leading space');
-        finalSuggestion = ' ' + lastSuggestion;
+      if (
+        lastChar &&
+        firstCharSuggestion &&
+        /[a-zA-Z0-9]/.test(lastChar) &&
+        /[a-zA-Z0-9]/.test(firstCharSuggestion)
+      ) {
+        console.log("[Main] Smart Spacing: Adding leading space")
+        finalSuggestion = " " + lastSuggestion
       }
 
-      console.log('[Main] Injecting suggestion (with 10ms safety delay):', finalSuggestion);
-      
+      console.log(
+        "[Main] Injecting suggestion (with 10ms safety delay):",
+        finalSuggestion
+      )
+
       // Record acceptance in history
-      suggestionHistory.push({ context: activeContextStr, suggestion: lastSuggestion, accepted: true });
-      if (suggestionHistory.length > 10) suggestionHistory.shift();
-      
+      suggestionHistory.push({
+        context: activeContextStr,
+        suggestion: lastSuggestion,
+        accepted: true,
+      })
+      if (suggestionHistory.length > 10) suggestionHistory.shift()
+
       // Defensive delay: Wait for the target app to process its own Tab event
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
       await uia.injectText(finalSuggestion)
-      lastSuggestion = ''
+      lastSuggestion = ""
       overlayWin?.hide()
-      overlayWin?.webContents.send('hide-suggestion')
+      overlayWin?.webContents.send("hide-suggestion")
     }
   })
 
-  keyHook.on('esc-pressed', () => {
-    console.log('[Main] Received esc-pressed event');
+  keyHook.on("esc-pressed", () => {
+    console.log("[Main] Received esc-pressed event")
     if (lastSuggestion) {
-      suggestionHistory.push({ context: activeContextStr, suggestion: lastSuggestion, accepted: false });
-      if (suggestionHistory.length > 10) suggestionHistory.shift();
+      suggestionHistory.push({
+        context: activeContextStr,
+        suggestion: lastSuggestion,
+        accepted: false,
+      })
+      if (suggestionHistory.length > 10) suggestionHistory.shift()
     }
-    lastSuggestion = ''
+    lastSuggestion = ""
     overlayWin?.hide()
-    overlayWin?.webContents.send('hide-suggestion')
+    overlayWin?.webContents.send("hide-suggestion")
   })
 
-  keyHook.on('mousedown', () => {
+  keyHook.on("mousedown", () => {
     if (lastSuggestion || currentAbortController) {
-      console.log('[Main] Mouse click detected - hiding ghost text and aborting AI');
-      lastSuggestion = ''
+      console.log(
+        "[Main] Mouse click detected - hiding ghost text and aborting AI"
+      )
+      lastSuggestion = ""
       if (currentAbortController) {
-        currentAbortController.abort();
-        currentAbortController = null;
+        currentAbortController.abort()
+        currentAbortController = null
       }
       overlayWin?.hide()
-      overlayWin?.webContents.send('hide-suggestion')
+      overlayWin?.webContents.send("hide-suggestion")
     }
   })
 
   // Window Controls
-  ipcMain.on('window-minimize', () => win?.minimize())
-  ipcMain.on('window-maximize', () => {
+  ipcMain.on("window-minimize", () => win?.minimize())
+  ipcMain.on("window-maximize", () => {
     if (win?.isMaximized()) {
       win.unmaximize()
     } else {
       win?.maximize()
     }
   })
-  ipcMain.on('window-close', () => win?.hide())
+  ipcMain.on("window-close", () => win?.hide())
 
   // Config Management
-  ipcMain.on('save-config', (_, { apiKey, model, processingEnabled, startOnStartup }) => {
-    store.set('apiKey', apiKey)
-    store.set('model', model)
-    if (processingEnabled !== undefined) {
-      store.set('processingEnabled', processingEnabled)
-    }
-    if (startOnStartup !== undefined) {
-      store.set('startOnStartup', startOnStartup)
-      if (app.isPackaged) {
-        app.setLoginItemSettings({
-          openAtLogin: startOnStartup,
-          path: app.getPath('exe'),
-        })
+  ipcMain.on(
+    "save-config",
+    (_, { apiKey, model, processingEnabled, startOnStartup }) => {
+      store.set("apiKey", apiKey)
+      store.set("model", model)
+      if (processingEnabled !== undefined) {
+        store.set("processingEnabled", processingEnabled)
       }
+      if (startOnStartup !== undefined) {
+        store.set("startOnStartup", startOnStartup)
+        if (app.isPackaged) {
+          app.setLoginItemSettings({
+            openAtLogin: startOnStartup,
+            path: app.getPath("exe"),
+          })
+        }
+      }
+
+      // Evaluate if hook should be enabled
+      const currentApiKey = store.get("apiKey") as string
+      const currentModel = store.get("model") as string
+      const currentEnabled = store.get("processingEnabled", false) as boolean
+      const shouldRun = Boolean(currentEnabled && currentApiKey && currentModel)
+      keyHook.setEnabled(shouldRun)
+
+      console.log("[Main] Config saved:", { model, shouldRun })
+      updateTrayMenu()
     }
-    
-    // Evaluate if hook should be enabled
-    const currentApiKey = store.get('apiKey') as string;
-    const currentModel = store.get('model') as string;
-    const currentEnabled = store.get('processingEnabled', false) as boolean;
-    const shouldRun = Boolean(currentEnabled && currentApiKey && currentModel);
-    keyHook.setEnabled(shouldRun);
+  )
 
-    console.log('[Main] Config saved:', { model, shouldRun })
-    updateTrayMenu()
-  })
-
-  ipcMain.handle('get-config', () => ({
-    apiKey: store.get('apiKey'),
-    model: store.get('model') || 'gemini-2.5-flash-lite',
-    processingEnabled: store.get('processingEnabled', false),
-    startOnStartup: store.get('startOnStartup', true)
+  ipcMain.handle("get-config", () => ({
+    apiKey: store.get("apiKey"),
+    model: store.get("model") || "gemini-2.5-flash-lite",
+    processingEnabled: store.get("processingEnabled", false),
+    startOnStartup: store.get("startOnStartup", true),
   }))
 })
 
-app.on('will-quit', () => {
+app.on("will-quit", () => {
   keyHook.stop()
   uia.cleanup()
 })

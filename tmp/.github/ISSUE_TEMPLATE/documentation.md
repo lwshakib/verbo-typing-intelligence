@@ -1,8 +1,8 @@
 ---
 name: 📖 Documentation
 about: Suggest improvements or report issues with Verbo documentation
-title: '[DOC] '
-labels: ['documentation']
+title: "[DOC] "
+labels: ["documentation"]
 assignees: []
 ---
 

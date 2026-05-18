@@ -1,8 +1,8 @@
 ---
 name: 💡 Feature request
 about: Suggest an improvement for Verbo Typing Intelligence
-title: '[FEAT] '
-labels: ['feature']
+title: "[FEAT] "
+labels: ["feature"]
 assignees: []
 ---
 

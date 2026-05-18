@@ -7,9 +7,9 @@ type LogoProps = {
 
 export default function Logo({
   size = 18,
-  color = '#0f172a',
+  color = "#0f172a",
   className,
-  title = 'Verbo',
+  title = "Verbo",
 }: LogoProps) {
   return (
     <svg
@@ -32,4 +32,3 @@ export default function Logo({
     </svg>
   )
 }
-

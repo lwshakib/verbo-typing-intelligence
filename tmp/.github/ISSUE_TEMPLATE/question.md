@@ -1,8 +1,8 @@
 ---
 name: 🧐 Question / support
 about: Ask a question or request help with setup/usage
-title: '[Q] '
-labels: ['question']
+title: "[Q] "
+labels: ["question"]
 assignees: []
 ---
 

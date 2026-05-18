@@ -1,50 +1,50 @@
-import { useEffect, useState } from 'react';
-import './Overlay.css';
+import { useEffect, useState } from "react"
+import "./Overlay.css"
 
 export default function Overlay() {
-  const [suggestion, setSuggestion] = useState<string | null>(null);
-  const [visible, setVisible] = useState(false);
+  const [suggestion, setSuggestion] = useState<string | null>(null)
+  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    let hideTimer: NodeJS.Timeout | null = null;
+    let hideTimer: NodeJS.Timeout | null = null
 
     const handleShowSuggestion = (_event: unknown, newSuggestion: unknown) => {
-      if (hideTimer) clearTimeout(hideTimer);
-      if (typeof newSuggestion === 'string') {
-        setSuggestion(newSuggestion);
+      if (hideTimer) clearTimeout(hideTimer)
+      if (typeof newSuggestion === "string") {
+        setSuggestion(newSuggestion)
       }
       requestAnimationFrame(() => {
-        setVisible(true);
-      });
-    };
+        setVisible(true)
+      })
+    }
 
     const handleHideSuggestion = () => {
-      setVisible(false);
+      setVisible(false)
       hideTimer = setTimeout(() => {
-        setSuggestion(null);
-      }, 150); // Matches transition duration
-    };
+        setSuggestion(null)
+      }, 150) // Matches transition duration
+    }
 
-    const api = window.electron;
+    const api = window.electron
     if (api?.on) {
-      api.on('show-suggestion', handleShowSuggestion);
-      api.on('hide-suggestion', handleHideSuggestion);
+      api.on("show-suggestion", handleShowSuggestion)
+      api.on("hide-suggestion", handleHideSuggestion)
     }
 
     return () => {
-      if (hideTimer) clearTimeout(hideTimer);
+      if (hideTimer) clearTimeout(hideTimer)
       if (api?.off) {
-        api.off('show-suggestion', handleShowSuggestion);
-        api.off('hide-suggestion', handleHideSuggestion);
+        api.off("show-suggestion", handleShowSuggestion)
+        api.off("hide-suggestion", handleHideSuggestion)
       }
-    };
-  }, []);
+    }
+  }, [])
 
   return (
     <div className="overlay-container">
-      <span className={`suggestion ${visible && suggestion ? 'visible' : ''}`}>
-        {suggestion || ''}
+      <span className={`suggestion ${visible && suggestion ? "visible" : ""}`}>
+        {suggestion || ""}
       </span>
     </div>
-  );
+  )
 }

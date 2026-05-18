@@ -7,6 +7,7 @@ Following these guidelines helps to communicate that you respect the time of the
 ---
 
 ## 🗺️ Table of Contents
+
 1. [Development Environment Setup](#development-environment-setup)
    - [Fork & Clone](#1-fork--clone)
    - [Setting Up Upstream](#2-setting-up-upstream)
@@ -21,6 +22,7 @@ Following these guidelines helps to communicate that you respect the time of the
 ## 🛠️ Development Environment Setup
 
 ### 1. Fork & Clone
+
 To begin contributing, create a personal fork of the repository on GitHub.
 Once your fork is created, clone it to your local development machine:
 
@@ -30,6 +32,7 @@ cd verbo-typing-intelligence
 ```
 
 ### 2. Setting Up Upstream
+
 To keep your local repository in sync with the official project repository, add the upstream remote:
 
 ```bash
@@ -37,6 +40,7 @@ git remote add upstream https://github.com/lwshakib/verbo-typing-intelligence.gi
 ```
 
 To verify your remotes:
+
 ```bash
 git remote -v
 # origin    https://github.com/<your-username>/verbo-typing-intelligence.git (fetch)
@@ -46,6 +50,7 @@ git remote -v
 ```
 
 Whenever you want to pull the latest changes from the main project:
+
 ```bash
 git fetch upstream
 git checkout main
@@ -53,10 +58,12 @@ git merge upstream/main
 ```
 
 ### 3. Prerequisites & Installation
-This project is built using Node.js (v20+) and `pnpm` (v9.15.9+). 
+
+This project is built using Node.js (v20+) and `pnpm` (v9.15.9+).
 Ensure you have native build tools installed on Windows (Visual Studio C++ build tools & Python) required for compiling native node modules (`uiohook-napi` and `ffi-napi`).
 
 Install all monorepo dependencies:
+
 ```bash
 pnpm install
 ```
@@ -73,11 +80,13 @@ Verbo Typing Intelligence is structured as a Turborepo monorepo:
 - `packages/ui`: Shared shadcn/ui components.
 
 To start development servers across all apps simultaneously:
+
 ```bash
 pnpm dev
 ```
 
 To run a specific app in development mode:
+
 ```bash
 pnpm turbo run dev --filter=desktop
 # or
@@ -97,6 +106,7 @@ git checkout -b <type>/<brief-description>
 ```
 
 **Branch Naming Examples:**
+
 - `feat/smart-spacing-rules`
 - `fix/overlay-positioning-bug`
 - `docs/update-readme-images`
@@ -109,6 +119,7 @@ git checkout -b <type>/<brief-description>
 Before committing and submitting your changes, ensure that your code adheres to our formatting, linting, and type-checking standards:
 
 1. **Format Check & Fix:**
+
    ```bash
    pnpm format:check
    # To automatically format all files:
@@ -116,11 +127,13 @@ Before committing and submitting your changes, ensure that your code adheres to 
    ```
 
 2. **Linting:**
+
    ```bash
    pnpm lint
    ```
 
 3. **Type Checking:**
+
    ```bash
    pnpm typecheck
    ```

@@ -1,8 +1,8 @@
 ---
 name: 🐛 Bug report
 about: Report a bug in Verbo Typing Intelligence
-title: '[BUG] '
-labels: ['bug']
+title: "[BUG] "
+labels: ["bug"]
 assignees: []
 ---
 
@@ -19,7 +19,7 @@ assignees: []
 - [ ] Configuration UI (API key/model/enabled)
 - [ ] Tray / taskbar / window behavior
 - [ ] Packaging / installer (electron-builder / NSIS)
-- [ ] Other: ____
+- [ ] Other: \_\_\_\_
 
 ## Reproduction steps
 
