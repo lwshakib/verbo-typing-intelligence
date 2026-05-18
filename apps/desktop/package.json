@@ -1,7 +1,9 @@
 {
   "name": "desktop",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "author": "Verbo AI",
+  "description": "Predictive inline typing assistant powered by Google Gemini AI across Windows OS.",
   "type": "module",
   "scripts": {
     "dev": "vite",
