@@ -1,3 +1,5 @@
+import { GoogleGenAI } from "@google/genai";
+
 export async function getAISuggestions(text: string): Promise<{ suggestion: string; error?: string }> {
   try {
     const config = await chrome.storage.local.get(['enabled', 'apiKey', 'model']);
@@ -5,50 +7,43 @@ export async function getAISuggestions(text: string): Promise<{ suggestion: stri
     const apiKey = config.apiKey as string | undefined;
     const model = (config.model || 'gemini-2.5-flash-lite') as string;
 
-    if (!enabled || !apiKey || !apiKey.trim()) {
+    if (!enabled) {
+      console.log('[Verbo CRX Background] Extension is currently disabled in settings. Skipping AI request.');
+      return { suggestion: "" };
+    }
+    if (!apiKey || !apiKey.trim()) {
+      console.log('[Verbo CRX Background] No Google Gemini API key configured. Please configure it in the extension popup.');
       return { suggestion: "" };
     }
 
     if (!model.startsWith('gemini-')) {
-      console.warn('[AI] Only Google Gemini models are supported currently. Model:', model);
+      console.warn('[Verbo CRX Background] Only Google Gemini models are supported currently. Model:', model);
       return { suggestion: "" };
     }
 
-    const SYSTEM_INSTRUCTION = "You are a context-aware inline typing assistant. Continue the user's text in a natural, highly relevant manner. Return ONLY the immediate, direct continuation of the text (from 1 to 8 words) to complete their sentence or thought. DO NOT repeat what they already wrote. DO NOT write explanations, formatting, markdown blocks, quotes, or use conversational language. If no sensible continuation is possible, return absolutely nothing.";
+    const systemInstruction = "You are a context-aware inline typing assistant. Continue the user's text in a natural, highly relevant manner. Return ONLY the immediate, direct continuation of the text (from 1 to 8 words) to complete their sentence or thought. DO NOT repeat what they already wrote. DO NOT write explanations, formatting, markdown blocks, quotes, or use conversational language. If no sensible continuation is possible, return absolutely nothing.";
 
-    let suggestion = "";
-
-    // REST call exactly according to the Google Gemini API REST documentation
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: "Context to continue:\n\"" + text + "\"" }]
-        }],
-        systemInstruction: {
-          parts: [{ text: SYSTEM_INSTRUCTION }]
-        },
-        generationConfig: {
-          maxOutputTokens: 20,
-          temperature: 0.2
-        }
-      })
-    });
-
-    const data = await response.json();
+    const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
     
-    if (data.error) {
-      console.error('[Verbo AI API Error]:', data.error);
-      return { suggestion: "", error: data.error.message };
-    }
+    console.log(`[Verbo CRX Background] Triggering AI generation...`);
+    console.log(` ├─ Model: ${model}`);
+    console.log(` └─ Context text: "${text}"`);
+    
+    const startTime = performance.now();
+    const response = await ai.models.generateContent({
+      model: model,
+      contents: `Context to continue:\n"${text}"`,
+      config: {
+        systemInstruction: systemInstruction,
+        maxOutputTokens: 20,
+        temperature: 0.2
+      }
+    });
+    const duration = ((performance.now() - startTime) / 1000).toFixed(2);
 
-    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
-      suggestion = data.candidates[0].content.parts[0].text;
-    }
+    let suggestion = response.text || "";
+    console.log(`[Verbo CRX Background] AI Response received (took ${duration}s):`);
+    console.log(` ├─ Raw output: "${suggestion}"`);
 
     // Clean suggestion of spacing or leading/trailing quotation marks
     suggestion = suggestion.trim();
@@ -64,9 +59,10 @@ export async function getAISuggestions(text: string): Promise<{ suggestion: stri
       suggestion = suggestion.slice(1);
     }
 
+    console.log(` └─ Final clean suggestion: "${suggestion}"`);
     return { suggestion };
   } catch (error: any) {
-    console.error('Verbo Extension background fetch error:', error);
+    console.error('[Verbo CRX Background] AI Generation error:', error);
     return { suggestion: "", error: error.message };
   }
 }

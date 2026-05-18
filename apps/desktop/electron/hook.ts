@@ -4,7 +4,8 @@ import { EventEmitter } from 'events';
 export class KeyHook extends EventEmitter {
   private enabled = true;
   private debouncedTimer: NodeJS.Timeout | null = null;
-  private debounceMs = 400; // Recommended 300-500ms
+  private debounceMs = 1000; // 1 second as requested by user
+
 
   constructor() {
     super();

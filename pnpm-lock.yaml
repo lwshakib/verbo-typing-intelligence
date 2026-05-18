@@ -29,6 +29,9 @@ importers:
 
   apps/chrome-extension:
     dependencies:
+      '@google/genai':
+        specifier: ^1.48.0
+        version: 1.52.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))
       react:
         specifier: ^19.2.4
         version: 19.2.4

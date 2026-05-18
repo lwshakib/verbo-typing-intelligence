@@ -5,9 +5,10 @@
 </p>
 
 <p align="center">
-  <img src="./apps/web/public/demos/desktop_app.png" alt="Verbo Desktop App Demo" width="48%" style="max-width: 400px; display: inline-block; margin-right: 1%; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px;" />
-  <img src="./apps/web/public/demos/chrome_extension.png" alt="Verbo Chrome Extension Demo" width="48%" style="max-width: 400px; display: inline-block; margin-left: 1%; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px;" />
+  <img src="./apps/web/public/demos/desktop_app.png" alt="Verbo Desktop App Demo" width="38%" style="max-width: 280px; display: inline-block; margin-right: 1%; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px;" />
+  <img src="./apps/web/public/demos/chrome_extension.png" alt="Verbo Chrome Extension Demo" width="38%" style="max-width: 280px; display: inline-block; margin-left: 1%; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px;" />
 </p>
+
 
 
 <p align="center">
